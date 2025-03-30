@@ -33,14 +33,3 @@ install_requirements:
 	
 run: install_requirements ## Start blueberry tools-agent.
 	python main.py
-
-
-## 2. Installation
-
-```bash
-cd ~
-git clone git@github.ibm.com:Blueberry/blueberry-chatbot.git
-cd blueberry-chatbot
-source ~/virtual/blueberry-chatbot/bin/activate
-make pip install -r requirements.txt
-```
