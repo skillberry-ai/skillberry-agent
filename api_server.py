@@ -4,13 +4,11 @@ import time
 import re
 from types import SimpleNamespace
 
-from fastapi import FastAPI, Body, HTTPException, Form
-from langchain.schema import HumanMessage
+from fastapi import FastAPI, HTTPException
 from langchain_core.messages import BaseMessage
 from pydantic import BaseModel, Field
 import requests
 
-from agents.code_missing_tools import generate_tool
 from tools_agentic_graph import stream_graph_updates
 
 # Define the API
@@ -106,35 +104,6 @@ def api_chat_completion(request: ChatRequest):
 
 
 # Health check endpoint
-
-
-@api_server.post("/generate_tool/{tool_name}", tags=["api"])
-def api_generate_tool(
-        tool_name: str,
-        tool_description: str,
-        tool_examples: str = Form(..., description="Enter usage examples for the tool:"),
-        skip_validation: bool = False
-):
-    try:
-        need_to_generate_tool = SimpleNamespace(
-            name=tool_name,
-            description=tool_description,
-            examples=tool_examples
-        )
-
-        timestamp = int(time.time())
-        name_prefix = f"from_api_at_{timestamp}"
-        success, name, description = generate_tool(need_to_generate_tool,
-                                                   original_prompt="",
-                                                   skip_validation=skip_validation,
-                                                   name_prefix=name_prefix)
-        if success:
-            return {"message": f"Tool {name} with description {description} generated successfully"}
-    except Exception as e:
-        logging.error(f"An error occurred: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
-
-
 @api_server.get("/health")
 def health_check():
     return {"status": "ok"}
