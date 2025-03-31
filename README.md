@@ -6,6 +6,18 @@
 
 ## 1. Prerequisites
 
+define the `RITS_API_KEY` environment variable
+
+```bash
+export RITS_API_KEY=********************************
+```
+
+set the service with the ipaddress of tools service
+
+update `config/config_structure.py` with correct `tools_repo_base_url` key. 
+
+_note:_ above step is temp until resolved
+
 set virtual environment
 
 ```bash
