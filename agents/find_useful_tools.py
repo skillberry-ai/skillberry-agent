@@ -67,7 +67,7 @@ class SuggestedTool(BaseModel):
     description: str = Field(description='the description of the tool')
     examples: str = Field(description='Usage examples of the tool')
     category: str = Field(description=f'The tool category. '
-                                      f'Valid values for "tool_category" are:\n {tool_category_description}')
+                                      f'Valid values for "category" are:\n {tool_category_description}')
     candidate_for_generation: Optional[bool]
 
 
