@@ -28,9 +28,6 @@ An AI system designed to automate gradual reprogramming of workflows with both e
         BTM1 --> BTM2
         BTM2 --> BTM3
     end
-    click BTM1 "https://github.ibm.com/Blueberry/blueberry-tools-maker"
-    click BTM2 "https://github.ibm.com/Blueberry/blueberry-tools-maker"
-    click BTM3 "https://github.ibm.com/Blueberry/blueberry-tools-maker"
 
     subgraph BTS[blueberry tools service]
         direction TB
@@ -45,17 +42,16 @@ An AI system designed to automate gradual reprogramming of workflows with both e
         BTS4[Execution]
         BTS5[Observability]
     end
-    click BTS1 "https://github.ibm.com/Blueberry/blueberry-tools-service"
-    click BTS2 "https://github.ibm.com/Blueberry/blueberry-tools-service"
-    click BTS3 "https://github.ibm.com/Blueberry/blueberry-tools-service"
-    click BTS4 "https://github.ibm.com/Blueberry/blueberry-tools-service"
-    click BTS5 "https://github.ibm.com/Blueberry/blueberry-tools-service"
+    %% click BTS1 "https://github.ibm.com/Blueberry/blueberry-tools-service"
+    %% click BTS2 "https://github.ibm.com/Blueberry/blueberry-tools-service"
+    %% click BTS3 "https://github.ibm.com/Blueberry/blueberry-tools-service"
+    %% click BTS4 "https://github.ibm.com/Blueberry/blueberry-tools-service"
+    %% click BTS5 "https://github.ibm.com/Blueberry/blueberry-tools-service"
 
     subgraph BC[blueberry chatbot]
         style BC1 fill:#f9f,stroke:#333,stroke-width:2px
         BC1["Assistant ChatBot<br>(demo)"]
     end
-    click BC1 "https://github.ibm.com/Blueberry/blueberry-chatbot"
 
     subgraph PA[Production Applications]
         style PA1 fill:#9f9,stroke:#333,stroke-width:2px
