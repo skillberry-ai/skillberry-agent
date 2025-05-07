@@ -12,9 +12,8 @@ Requests>=2.32.3
 typing_extensions>=4.13.2
 uvicorn>=0.16.0
 
-# agentic observability
-# Disabled for now due to very large amount of python packages required by the observability SDK
-
 git+ssh://git@github.ibm.com/Blueberry/blueberry-sdk.git#subdirectory=blueberry_tools_maker_sdk
+git+ssh://git@github.ibm.com/Blueberry/blueberry-sdk.git#subdirectory=blueberry_tools_service_sdk
 
+# Skip deploy of Analytics SDK for now
 # git+ssh://git@github.ibm.com/agent-analytics/sdk.git@release

@@ -6,7 +6,7 @@ import requests
 
 from langchain.tools import tool
 
-from agents.tools_service_api import get_tool_manifest
+from utils.tools_service_api import tools_service
 
 logger = logging.getLogger(__name__)
 
@@ -80,14 +80,14 @@ def {tool_function_name} {arguments_string}:
 
 def generate_dynamic_tool(_tool: dict, scope: dict, _base_url: str):
     name = _tool["name"]
-    metadata = get_tool_manifest(_base_url, name)
+    metadata = tools_service.get_tool_manifest(_base_url, name)
     arguments_string = generate_function_arguments_from_metadata(metadata)
     tool_docstring = generate_function_docstring_from_metadata(metadata)
     tool_func = define_tool_dynamically(tool_name=name,
                                         tool_docstring=tool_docstring,
                                         arguments_string=arguments_string,
                                         scope=scope,
-                                        _base_url=_base_url)
+                                        _base_url=tools_service.get_tools_service_base_url())
     return tool_func
 
 

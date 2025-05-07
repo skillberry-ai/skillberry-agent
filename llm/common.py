@@ -12,25 +12,16 @@ if "RITS_API_KEY" not in os.environ:
     print("Additional info can be found on #rits-community slack")
     exit(1)
 
-os.environ["RITS_API_URL"] = "https://inference-3scale-apicast-production.apps.rits.fmaas.res.ibm.com"
-os.environ["RITS_PROXY_API_URL"] = "http://9.148.245.32:4000"
-
-rits_api_url = os.environ["RITS_API_URL"]
-rits_proxy_api_url = os.environ["RITS_PROXY_API_URL"]
 rits_api_key = os.environ["RITS_API_KEY"]
+
+rits_api_url = config.get("rits_api_url")
+rits_proxy_api_url = config.get("rits_proxy_api_url")
+use_rits_proxy = config.get("use_rits_proxy")
 
 selected_model = config.get("selected_model")
 use_rits_proxy = config.get("use_rits_proxy")
 temperature = config.get("temperature")
 
-
-logger.info(f"\n\n"
-            f"==> 0. Configuration:\n"
-            f"==> =================\n"
-            f"==> Using model: {selected_model}\n"
-            f"==> Temperature: {temperature}\n"
-            f"==> Using rits proxy: {use_rits_proxy}\n"
-)
 
 if use_rits_proxy:
     model_name = f"rits/{selected_model}".replace('.', '-').lower()
@@ -59,6 +50,18 @@ else:
 
 
 def check_llm_communication():
+
+    logger.info(f"\n\n"
+                f"==> 0. Configuration:\n"
+                f"==> =================\n"
+                f"==> Using rits proxy: {use_rits_proxy}\n"
+                f"==> rits API URL: {rits_api_url}\n"
+                f"==> rits proxy API URL: {rits_proxy_api_url}\n"
+                f"==> =================\n"
+                f"==> Using model: {selected_model}\n"
+                f"==> Temperature: {temperature}\n"
+                )
+
     try:
         llm.invoke("try to communicate with the llm")
         logger.info("Communication with the LLM established.")

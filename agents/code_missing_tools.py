@@ -3,8 +3,7 @@ import logging
 from config import config, config_structure
 from agents.state import State
 
-from utils.tools_maker_api import generate_tool_tools_maker
-
+from utils.tools_maker_api import tools_maker
 
 logger = logging.getLogger(__name__)
 
@@ -29,15 +28,27 @@ def code_missing_tools(state: State):
             continue
 
         try:
-            response = generate_tool_tools_maker(
+            response = tools_maker.generate_tool(
                 need_to_generate_tool.name,
                 need_to_generate_tool.description,
-                need_to_generate_tool.examples
+                need_to_generate_tool.examples,
+                skip_validation=False,
+                original_prompt=state.original_user_prompt.content,
             )
 
+            if response is None:
+                logger.info(f"!!! tools_maker.generate_tool failed for tool {name}. The tool will not be generated !!!")
+                thinking_log.append("I failed to code new tool {name}. ")
+                continue
+
+            generated_tool_name = response["name"]
+            generated_tool_description = response["description"]
+            logger.info(f"!!! tools_maker.generate_tool succeeded for tool {generated_tool_name} !!!")
+            thinking_log.append(f"I just coded a new ephemeral tool {generated_tool_name}. ")
+
             generated_tools.append({
-                "name": response["name"],
-                "description": response["description"]
+                "name": generated_tool_name,
+                "description": generated_tool_description
             })
         except Exception as e:
             logger.error(f"code_missing_tools: generate_tool for '{name}' failed: {str(e)}")

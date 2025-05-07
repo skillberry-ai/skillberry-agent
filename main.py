@@ -1,5 +1,6 @@
 import logging
 from logging.handlers import RotatingFileHandler
+from time import sleep
 
 import uvicorn
 import threading
@@ -15,6 +16,8 @@ from tools_agentic_graph import define_tools_agentic_graph
 from api_server import api_server
 from config.config_ui import config_ui_app
 from config.config_ui import config
+from utils.tools_maker_api import tools_maker
+from utils.tools_service_api import tools_service
 
 # Initialize logger
 logger = logging.getLogger(__name__)
@@ -83,11 +86,28 @@ def run_config_ui():
 
 
 def main():
+
+    # Run the configuration UI
+    config_ui_thread = threading.Thread(target=run_config_ui)
+    config_ui_thread.start()
+
     # make sure we can communicate with the LLM
     if not check_llm_communication():
-        logger.error(
-            "Can't communicate with the LLM, please check network, VPN, access keys etc.")
-        exit(2)
+        logger.error("Can't communicate with the LLM, please check network, VPN, access keys etc.")
+        logging.error("Only the configuration UI is working now, allowing to change the configuration and restart.")
+        sleep(100000)
+
+    # make sure we can communicate with the tools-service
+    if not (tools_service.check_communication()):
+        logger.error("Can't communicate with the tools-service, please check network, VPN, access keys etc.")
+        logging.error("Only the configuration UI is working now, allowing to change the configuration and restart.")
+        sleep(100000)
+
+    # make sure we can communicate with the tools-maker
+    if not (tools_maker.check_communication()):
+        logger.error("Can't communicate with the tools-maker, please check network, VPN, access keys etc.")
+        logging.error("Only the configuration UI is working now, allowing to change the configuration and restart.")
+        sleep(100000)
 
     # define the agentic graph
     define_tools_agentic_graph()
@@ -95,10 +115,6 @@ def main():
     # user_input = "What is the 1294th prime number?"
     # user_input = "How much is 2+2?"
     # stream_graph_updates(tools_agentic_graph, user_input)
-
-    # Run the configuration UI
-    config_ui_thread = threading.Thread(target=run_config_ui)
-    config_ui_thread.start()
 
     # Run the API server
     uvicorn.run(api_server, host="0.0.0.0", port=7000)

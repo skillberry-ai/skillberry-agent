@@ -3,10 +3,10 @@ import logging
 logger = logging.getLogger(__name__)
 #DAVIDBR: TODO: Add placeholder for sequential thinking configuration
 CONFIG_STRUCTURE = {
-    "tools_repo_base_url": {
+    "tools_service_base_url": {
         "type": "str",
         "default": "http://9.148.245.32:8000", #DVIDBR: TODO: remove hardcoded IP
-        "label": "The tools repository url: ",
+        "label": "The tools service url: ",
     },
     "tools_maker_base_url": {
         "type": "str",

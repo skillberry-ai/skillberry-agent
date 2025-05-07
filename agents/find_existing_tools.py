@@ -1,15 +1,12 @@
 import logging
 
 from agents.state import State
-from agents.tools_service_api import search_tools
 from config.config_ui import config
+from utils.tools_service_api import tools_service
 
 logger = logging.getLogger(__name__)
 
 # search for tools from the repository using API call (semantic search)
-tools_repo_base_url = config.get("tools_repo_base_url")
-
-headers = {"Content-Type": "application/json"}
 
 
 def find_existing_tools(state: State):
@@ -30,7 +27,10 @@ def find_existing_tools(state: State):
             # issue get request against the url with `search_term` equals to the name of the suggested tool
             similarity_threshold = config.get("advanced__similarity_threshold")
             max_tools_count = config.get("advanced__max_tools_count")
-            found_tools = search_tools(tools_repo_base_url, name, description, max_tools_count, similarity_threshold)
+            found_tools = tools_service.search_tools(name,
+                                                     description,
+                                                     max_tools_count,
+                                                     similarity_threshold)
 
             if found_tools is not None and len(found_tools) > 0:
                 logger.info("find_existing_tools returned: %s", found_tools)

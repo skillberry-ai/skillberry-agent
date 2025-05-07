@@ -1,59 +1,77 @@
 import logging
 
-from config import config, config_structure
-
 import blueberry_tools_maker_sdk
-from pprint import pprint
-
+from config.config_ui import config
 
 logger = logging.getLogger(__name__)
 
 
-# Load configuration
-my_config = config.DynamicConfig(config_structure.CONFIG_STRUCTURE)
-tools_maker_base_url = my_config.get("tools_maker_base_url")
+class ToolsMaker:
+    def __init__(self, base_url=None):
+        self.base_url = base_url if base_url else tools_maker_base_url
+        configuration = blueberry_tools_maker_sdk.Configuration(host=self.base_url)
+        with blueberry_tools_maker_sdk.ApiClient(configuration) as api_client:
+            self.api_instance = blueberry_tools_maker_sdk.ApiApi(api_client)
 
+    def check_communication(self):
+        """
+        Check connectivity status into the tools' maker.
 
-def generate_tool_tools_maker(
-        tool_name: str,
-        tool_description: str,
-        tool_examples: str,
-        skip_validation: bool = False
-    ):
-    """
-    Request blueberry tools maker to generate a tool with the given name, description and examples using
-    blueberry-tools-maker-sdk.
+        Returns:
+            bool: whether connectivity succeeded
 
-    Parameters:
-        tool_name (str): tool name
-        tool_description (str): tool description
-        tool_examples (str): tool examples
-        skip_validation (bool): whether to skip validation process
+        """
+        logger.info("check_communication called")
+        try:
+            self.api_instance.api_validate_tool_validate_tool_tool_name_post("test")
 
-    Returns:
-        bool: whether operation succeed
+        except blueberry_tools_maker_sdk.ApiException as e:
+            if e.status == 404:
+                pass
+            else:
+                logger.error(f"Tools maker is not reachable: {e}")
+                return False
+        logger.info("Tools maker is up and running.")
+        return True
 
-    Raises:
-        Exception: Any failure occurred during execution
+    def generate_tool(
+            self,
+            tool_name: str,
+            tool_description: str,
+            tool_examples: str,
+            skip_validation: bool = False,
+            original_prompt: str = None) -> bool:
+        """
+        Request blueberry tools maker to generate a tool with the given name, description and examples using
+        blueberry-tools-maker-sdk.
 
-    """
-    logger.info(f"generate_tool_tools_maker called for tool: {tool_name}")
+        Parameters:
+            tool_name (str): tool name
+            tool_description (str): tool description
+            tool_examples (str): tool examples
+            skip_validation (bool): whether to skip validation process
+            original_prompt (str): original prompt to be used for tool generation
 
-    configuration = blueberry_tools_maker_sdk.Configuration(
-        host = tools_maker_base_url
-    )
+        Returns:
+            bool: whether operation succeed
 
-    with blueberry_tools_maker_sdk.ApiClient(configuration) as api_client:
-        api_instance = blueberry_tools_maker_sdk.ApiApi(api_client)
-        skip_validation = False # bool |  (optional) (default to False)
+        Raises:
+            Exception: Any failure occurred during execution
 
-        api_response = api_instance.api_generate_tool_generate_tool_tool_name_post(
-            tool_name,
-            tool_description,
-            tool_examples,
-            skip_validation=skip_validation
+        """
+        logger.info(f"generate_tool_tools_maker called for tool: {tool_name}")
+
+        api_response = self.api_instance.api_generate_tool_generate_tool_tool_name_post(
+            tool_name=original_prompt,
+            tool_description=tool_description,
+            tool_examples=tool_examples,
+            # original_prompt=original_prompt, ### TODO: add this into the API
+            skip_validation=skip_validation,
         )
-        # TODO: remove print
-        print("The response of ApiApi->api_generate_tool_generate_tool_tool_name_post:\n")
-        pprint(api_response)
+        logger.debug("The response of ApiApi->api_generate_tool_generate_tool_tool_name_post {api_response}:\n")
         return api_response
+
+
+# Load configuration and set up the tools maker API
+tools_maker_base_url = config.get("tools_maker_base_url")
+tools_maker = ToolsMaker(tools_maker_base_url)
