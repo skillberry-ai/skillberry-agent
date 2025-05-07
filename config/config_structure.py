@@ -5,18 +5,28 @@ logger = logging.getLogger(__name__)
 CONFIG_STRUCTURE = {
     "tools_service_base_url": {
         "type": "str",
-        "default": "http://9.148.245.32:8000", #DVIDBR: TODO: remove hardcoded IP
+        "default": "http://127.0.0.1:8000",
         "label": "The tools service url: ",
     },
     "tools_maker_base_url": {
         "type": "str",
-        "default": "http://9.148.245.32:9000",
+        "default": "http://127.0.0.1:9000",
         "label": "The tools maker url: ",
     },
     "use_rits_proxy": {
         "type": "bool",
         "default": True,
         "label": "Should use the rits proxy (or connect to rits directly): "
+    },
+    "rits_api_url": {
+        "type": "str",
+        "default": "https://inference-3scale-apicast-production.apps.rits.fmaas.res.ibm.com",
+        "label": "IBM rits service API URL (for direct connection)"
+    },
+    "rits_proxy_api_url": {
+        "type": "str",
+        "default": "http://9.148.245.32:4000",
+        "label": "IBM rits proxy API URL (for proxy connection)"
     },
     "selected_model": {
         "type": "str",
@@ -46,7 +56,7 @@ CONFIG_STRUCTURE = {
     },
     "generate_tools_dynamically": {
         "type": "bool",
-        "default": False,
+        "default": True,
         "label": "Generate (code) tools dynamically: "
     },
     "advanced": {
@@ -70,7 +80,7 @@ CONFIG_STRUCTURE = {
             },
             "similarity_threshold": {
                 "type": "float",
-                "default": 1.0,
+                "default": 0.5,
                 "label": "Similarity threshold for tools shortlisting: "
             },
             "max_tools_count": {

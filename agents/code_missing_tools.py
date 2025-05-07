@@ -1,6 +1,6 @@
 import logging
 
-from config import config, config_structure
+from config.config_ui import config
 from agents.state import State
 
 from utils.tools_maker_api import tools_maker
@@ -19,8 +19,7 @@ def code_missing_tools(state: State):
         name = need_to_generate_tool.name
 
         # A flag that allows (or disallows) to generate tools dynamically by the agent
-        my_config = config.DynamicConfig(config_structure.CONFIG_STRUCTURE)
-        generate_tools_dynamically = my_config.get("generate_tools_dynamically")
+        generate_tools_dynamically = config.get("generate_tools_dynamically")
         if not generate_tools_dynamically:
             thinking_log.append("I am not allowed to code new tools. ")
             logger.info(
@@ -33,7 +32,7 @@ def code_missing_tools(state: State):
                 need_to_generate_tool.description,
                 need_to_generate_tool.examples,
                 skip_validation=False,
-                original_prompt=state.original_user_prompt.content,
+                original_prompt=state["original_user_prompt"].content,
             )
 
             if response is None:
@@ -41,8 +40,13 @@ def code_missing_tools(state: State):
                 thinking_log.append("I failed to code new tool {name}. ")
                 continue
 
-            generated_tool_name = response["name"]
-            generated_tool_description = response["description"]
+            # update the tool with the generated name and description
+            generated_tool_name = response["detail"]["name"]
+            generated_tool_description = response["detail"]["description"]
+
+            need_to_generate_tool.name = generated_tool_name
+            need_to_generate_tool.description = generated_tool_description
+
             logger.info(f"!!! tools_maker.generate_tool succeeded for tool {generated_tool_name} !!!")
             thinking_log.append(f"I just coded a new ephemeral tool {generated_tool_name}. ")
 

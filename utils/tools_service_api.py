@@ -49,7 +49,7 @@ class ToolsService:
         logger.info("Tools service is up and running.")
         return True
 
-    def get_manifest(self, tool_name: str):
+    def get_tool_manifest(self, tool_name: str):
         """
         Retrieve the manifest with the given name using blueberry-tools-service-sdk.
 
@@ -88,7 +88,7 @@ class ToolsService:
         logger.info(f"execute_tool called for tool: {tool_name}")
 
         response = self.manifest_api.search_manifest_search_manifests_get(
-            search_term=f"{tool_name}: {tool_description}",
+            search_term=f"{tool_description}",  # TODO: search term e.g., f"{tool_name}: {tool_description}"
             max_number_of_results=max_numer_of_results,
             similarity_threshold=similarity_threshold,
         )

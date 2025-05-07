@@ -80,7 +80,7 @@ def {tool_function_name} {arguments_string}:
 
 def generate_dynamic_tool(_tool: dict, scope: dict, _base_url: str):
     name = _tool["name"]
-    metadata = tools_service.get_tool_manifest(_base_url, name)
+    metadata = tools_service.get_tool_manifest(name)
     arguments_string = generate_function_arguments_from_metadata(metadata)
     tool_docstring = generate_function_docstring_from_metadata(metadata)
     tool_func = define_tool_dynamically(tool_name=name,

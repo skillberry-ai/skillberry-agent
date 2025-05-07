@@ -26,7 +26,7 @@ class ToolsMaker:
             self.api_instance.api_validate_tool_validate_tool_tool_name_post("test")
 
         except blueberry_tools_maker_sdk.ApiException as e:
-            if e.status == 404:
+            if e.status == 404 or e.status == 500:
                 pass
             else:
                 logger.error(f"Tools maker is not reachable: {e}")
