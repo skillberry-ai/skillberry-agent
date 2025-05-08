@@ -20,11 +20,14 @@ find_useful_tools_chat_prompt_template = ChatPromptTemplate([
                "specify the name of the tool in hungarian notation and provide crisp and informative description"),
     ("system", "Suggest only simple tools and simple functions"),
     ("system", "Each function in the list of suggested tools and functions should provide different functionality. "
-               "Do not suggest tools and functions that provide the similar functionality."),
+               "Do not suggest tools and functions that provide the same or similar functionality."
+               "If you identify that two or more tools and functions provide the same or similar functionality, "
+               "suggest only one of them."),
     ("system", "Suggest minimal amount of functions. Focus on deterministic tools. "
-               "For example mathematical functions, conversion functions, string manipulation functions, etc."),
+               "For example mathematical functions, transformations and conversion functions, "
+               "string manipulation functions, and so on."),
     ("system", "Do not suggest tools and functions that performs error handling"),
-    ("system", "Do not suggest tools and functions that functional helper functions."
+    ("system", "Do not suggest tools and functions that are functional helper functions."
                "For example, do not suggest printing to the console functions or `hello world` functions."),
     ("system", "Do not suggest tools and functions that requires access to external services"),
     ("system", "Do not suggest tools and functions that are complicated"),
