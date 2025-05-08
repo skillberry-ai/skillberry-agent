@@ -94,6 +94,33 @@ class ToolsService:
         )
         return response
 
+    def execute_tool(self, tool_name: str, parameters: dict):
+        """
+        Invoke a tool denoted by tool_name with given parameters using blueberry-tools-service-sdk.
+
+        Parameters:
+            tool_name (str): Name of the tool to invoke
+            parameters (dict): the parameter to pass (optional)
+
+        Returns:
+            dict: return value result
+
+        Raises:
+            Exception: Any failure occurred during execution
+
+        """
+        logger.info(f"execute_tool called for tool: {tool_name}")
+
+        uid = tool_name
+
+        execute_response = (
+            self.manifest_api.execute_manifest_manifests_execute_uid_post(
+                uid, body=parameters
+            )
+        )
+        # FIXME: should be const in all places
+        return execute_response["return value"]
+
 
 # Load configuration and set up the tools maker API
 tools_service_base_url = config.get("tools_service_base_url")
