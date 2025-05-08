@@ -65,7 +65,7 @@ class ToolsMaker:
             tool_name=original_prompt,
             tool_description=tool_description,
             tool_examples=tool_examples,
-            # original_prompt=original_prompt, ### TODO: add this into the API
+            original_prompt=original_prompt,
             skip_validation=skip_validation,
         )
         logger.debug("The response of ApiApi->api_generate_tool_generate_tool_tool_name_post {api_response}:\n")
