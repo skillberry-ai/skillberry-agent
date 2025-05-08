@@ -6,7 +6,7 @@ import requests
 
 from langchain.tools import tool
 
-from agents.tools_service_api import get_tool_manifest
+from utils.tools_service_api import tools_service
 
 logger = logging.getLogger(__name__)
 
@@ -34,7 +34,9 @@ def create_function_from_string(code: str, func_name: str, scope: dict):
     return scope.get(func_name)
 
 
-def define_tool_dynamically(tool_name: str, tool_docstring: str, arguments_string: str, scope: dict, _base_url: str):
+def define_tool_dynamically(
+    tool_name: str, tool_docstring: str, arguments_string: str, scope: dict
+):
     """
     Invoke a local tool based on OpenAI parameters definition to be used by the agentic workflow
     """
@@ -47,6 +49,7 @@ import requests
 import json
 import inspect
 from langchain.tools import tool
+from utils.tools_service_api import tools_service
 
 headers = {{
     "accept": "application/json",
@@ -62,17 +65,17 @@ def {tool_function_name} {arguments_string}:
     frame = inspect.currentframe()
     args, _, _, values = inspect.getargvalues(frame)
     param_dict = {{arg: values[arg] for arg in args}}
-    execute_tool_url = f"{_base_url}/manifests/execute/{tool_name}"
-    response = requests.post(
-        execute_tool_url, headers=headers, json=param_dict)
-    if response.status_code == 200:
-        response_json = response.json()
-        return_value = response_json["return value"]
-        cleaned_return_value = return_value.strip().replace('"', '')
-        print(f'====> returning response from the function: {{cleaned_return_value}}')
-        return cleaned_return_value
-    else:
+    try:
+        print(f"Calling tools_service.execute_tool with: {tool_function_name} and parameters: {{param_dict}}")
+        return_value = tools_service.execute_tool("{tool_function_name}",param_dict)
+    except Exception as e:
+        print(f"Error executing tool: {{e}}")
         return None
+            
+    print (f"return_value from tools_service: {{return_value}}")
+    cleaned_return_value = return_value.strip().replace('"', '')
+    print(f'====> returning response from the function: {{cleaned_return_value}}')
+    return cleaned_return_value
 """
     _tool = create_function_from_string(python_code, tool_function_name, scope)
     return _tool
@@ -80,14 +83,15 @@ def {tool_function_name} {arguments_string}:
 
 def generate_dynamic_tool(_tool: dict, scope: dict, _base_url: str):
     name = _tool["name"]
-    metadata = get_tool_manifest(_base_url, name)
+    metadata = tools_service.get_tool_manifest(name)
     arguments_string = generate_function_arguments_from_metadata(metadata)
     tool_docstring = generate_function_docstring_from_metadata(metadata)
-    tool_func = define_tool_dynamically(tool_name=name,
-                                        tool_docstring=tool_docstring,
-                                        arguments_string=arguments_string,
-                                        scope=scope,
-                                        _base_url=_base_url)
+    tool_func = define_tool_dynamically(
+        tool_name=name,
+        tool_docstring=tool_docstring,
+        arguments_string=arguments_string,
+        scope=scope,
+    )
     return tool_func
 
 
@@ -117,16 +121,16 @@ def json_schema_to_python_type(json_schema_type: str) -> str:
 def generate_function_arguments_from_metadata(metadata: str):
     parsed_info = metadata
     function_arguments = f"("
-    parameters = parsed_info['params']['properties']
+    parameters = parsed_info["params"]["properties"]
     param_strs = []
 
     for param_name, param_info in parameters.items():
-        param_type = json_schema_to_python_type(param_info['type'])
+        param_type = json_schema_to_python_type(param_info["type"])
         param_strs.append(f"{param_name}: {param_type}")
 
     try:
-        returns = parsed_info['returns']['properties']
-        returns_type = json_schema_to_python_type(returns['type'])
+        returns = parsed_info["returns"]["properties"]
+        returns_type = json_schema_to_python_type(returns["type"])
     except Exception as e:
         returns_type = "str"
 

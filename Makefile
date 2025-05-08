@@ -37,7 +37,11 @@ BASE_DIR=$(shell pwd)
 
 ##@ Setup & teardown
 
-install_requirements: 
+git_hooks_setup:
+	@git config core.hooksPath .githooks
+	@chmod +x .githooks/*
+
+install_requirements: git_hooks_setup # Install requirements
 	pip install -r requirements.txt
 	
 run: install_requirements ## Start blueberry tools-agent.
@@ -62,3 +66,5 @@ docker_stop: ## Stop the docker image
 docker_push: docker_build ## Push docker image
 	docker push $(DOCKER_NAME):$(DOCKER_VERSION)
 
+include .mk/development.mk
+include .mk/ci.mk
