@@ -23,15 +23,32 @@ tools_repo_base_url = _config.get("tools_repo_base_url")
 
 headers = {"Accept": "application/json"}
 
-execute_tools_with_parameters_chat_prompt_template = ChatPromptTemplate.from_messages([
-    ("system", "You are an expert in invocation function and tools"),
-    ("system", "If a tool returns no results or fails,consider using a different tool or approach"),
-    ("system", "Provide a final response only when you're confident you have sufficient information"),
-    ("system", "You use the observations from the tools to provide accurate responses"),
-    ("system", "The final response should not provide any names or descriptions of used functions and tools"),
-    ("system", "The final response should not include explanations about the tool calling process"),
-    "{chat_history}",
-])
+execute_tools_with_parameters_chat_prompt_template = ChatPromptTemplate.from_messages(
+    [
+        ("system", "You are an expert in invocation function and tools"),
+        (
+            "system",
+            "If a tool returns no results or fails,consider using a different tool or approach",
+        ),
+        (
+            "system",
+            "Provide a final response only when you're confident you have sufficient information",
+        ),
+        (
+            "system",
+            "You use the observations from the tools to provide accurate responses",
+        ),
+        (
+            "system",
+            "The final response should not provide any names or descriptions of used functions and tools",
+        ),
+        (
+            "system",
+            "The final response should not include explanations about the tool calling process",
+        ),
+        "{chat_history}",
+    ]
+)
 
 
 class ReactToolsCallingAgentState(TypedDict):
@@ -52,7 +69,9 @@ def tool_node(state: ReactToolsCallingAgentState):
     for tool_call in state["messages"][-1].tool_calls:
         tool_name = tool_call["name"]
         tool_args = tool_call["args"]
-        logging.info(f"=====> The agentic flow will now call the function {tool_name} with args {tool_args}")
+        logging.info(
+            f"=====> The agentic flow will now call the function {tool_name} with args {tool_args}"
+        )
         tool_function = get_tool(tool_name)
         if tool_function is None:
             raise ValueError(f"tool_node: The Tool {tool_name} was not found")
@@ -60,11 +79,15 @@ def tool_node(state: ReactToolsCallingAgentState):
         tool_invocation_status = "success"
         try:
             tool_result = tool_function.invoke(tool_args)
-            logging.info(f"=====> The agentic flow called the function {tool_name}\n"
-                         f"=====> With args {tool_args} and got result: {tool_result}\n")
+            logging.info(
+                f"=====> The agentic flow called the function {tool_name}\n"
+                f"=====> With args {tool_args} and got result: {tool_result}\n"
+            )
 
             if tool_result is None or tool_result == "" or tool_result == "None":
-                logging.error(f"=====> The tool {tool_name} returned None or empty string\n!!! failure !!!\n")
+                logging.error(
+                    f"=====> The tool {tool_name} returned None or empty string\n!!! failure !!!\n"
+                )
                 tool_invocation_status = "error"
 
             # check if ToolMessage already exist in the previous messages
@@ -72,9 +95,11 @@ def tool_node(state: ReactToolsCallingAgentState):
             for message in state["messages"]:
                 if isinstance(message, ToolMessage):
                     if message.content == tool_result:
-                        logging.error(f"=====> The tool was already called by the agent, "
-                                      f"and returned the same response: {tool_result}"
-                                      f"\n!!! failure !!!\n")
+                        logging.error(
+                            f"=====> The tool was already called by the agent, "
+                            f"and returned the same response: {tool_result}"
+                            f"\n!!! failure !!!\n"
+                        )
                         tool_invocation_status = "error"
 
         except Exception as e:
@@ -91,18 +116,18 @@ def tool_node(state: ReactToolsCallingAgentState):
 
         if tool_invocation_status == "error":
             thinking_log += f"calling the tool {tool_name} failed. "
-            outputs.append(SystemMessage(f"The last call to the tool: {tool_name} failed. "
-                                         f"Do not invoke the tool again. "
-                                         f"Continue to response to the user without using the tool"))
+            outputs.append(
+                SystemMessage(
+                    f"The last call to the tool: {tool_name} failed. "
+                    f"Do not invoke the tool again. "
+                    f"Continue to response to the user without using the tool"
+                )
+            )
 
-    return {"messages": outputs,
-            "thinking_log": thinking_log
-            }
+    return {"messages": outputs, "thinking_log": thinking_log}
 
 
-def call_llm_model_node(
-        state: ReactToolsCallingAgentState,
-        config: RunnableConfig):
+def call_llm_model_node(state: ReactToolsCallingAgentState, config: RunnableConfig):
     last_message = state["messages"][-1]
     logging.info(f"=====> Calling LLM to response.)")
     logging.info(f"Latest message is: {last_message}")
@@ -120,7 +145,9 @@ def should_continue(state: ReactToolsCallingAgentState):
                 logging.info(f"=====> Tool name was found in the content")
                 return "continue_call_tools"
 
-        logging.info(f"=====> The agentic flow will now return to the user (no more tool_calls)")
+        logging.info(
+            f"=====> The agentic flow will now return to the user (no more tool_calls)"
+        )
         return "end"
     else:
         logging.info(f"=====> The agentic flow will continue, calling additional tools")
@@ -137,7 +164,9 @@ def generate_list_of_tools(state: State):
             tool_func = generate_dynamic_tool(_tool, scope, tools_repo_base_url)
             _tools.append(tool_func)
         except Exception as e:
-            logging.error(f"existing_tools: Error while generate_dynamic_tool {_tool['name']}: {e}")
+            logging.error(
+                f"existing_tools: Error while generate_dynamic_tool {_tool['name']}: {e}"
+            )
 
     for _tool in state["generated_tools"]:
         try:
@@ -145,7 +174,9 @@ def generate_list_of_tools(state: State):
             tool_func = generate_dynamic_tool(_tool, scope, tools_repo_base_url)
             _tools.append(tool_func)
         except Exception as e:
-            logging.error(f"need_to_generate_tools: Error while generate_dynamic_tool {_tool['name']}: {e}")
+            logging.error(
+                f"need_to_generate_tools: Error while generate_dynamic_tool {_tool['name']}: {e}"
+            )
 
     return _tools
 
@@ -164,20 +195,32 @@ def execute_tools_with_parameters(state: State):
     # bind the tools to the LLM
     try:
         if not _tools:
-            thinking_log += "I don't have any tools to use. using the LLM model as-is to response. "
+            thinking_log += (
+                "I don't have any tools to use. using the LLM model as-is to response. "
+            )
             logging.info(f"=====> No tools, not binding")
             _llm_with_tools = llm
         else:
             thinking_log += "I will now use the tools and the LLM model to respond. "
             logging.info(f"=====> Binding tools: {_tools}")
-            _llm_with_tools = llm.bind_tools(tools=_tools,
-                                             tool_choice='auto',
-                                             strict=True)
+            _llm_with_tools = llm.bind_tools(
+                tools=_tools, tool_choice="auto", strict=True
+            )
     except Exception as e:
         logging.error(f"Error while binding tools: {e}")
-        return {"messages": [{
-            'role': 'ai',
-            'content': json.dumps({"output": "Sorry, failed to answer using blueberry (tools binding)"}, indent=4)}]}
+        return {
+            "messages": [
+                {
+                    "role": "ai",
+                    "content": json.dumps(
+                        {
+                            "output": "Sorry, failed to answer using blueberry (tools binding)"
+                        },
+                        indent=4,
+                    ),
+                }
+            ]
+        }
 
     # Use a React tool calling agent
     # Define a new graph
@@ -215,32 +258,53 @@ def execute_tools_with_parameters(state: State):
         return _final_message
 
     # Building the basic prompt for the React tools agent
-    original_chat_messages = execute_tools_with_parameters_chat_prompt_template.invoke(chat_history)
+    original_chat_messages = execute_tools_with_parameters_chat_prompt_template.invoke(
+        chat_history
+    )
 
     try:
         logging.info(f"=====> Invoking the tools react agent")
         recursion_limit = _config.get("tools_react_agent__recursion_limit")
-        final_message = trace_stream(react_tools_graph.stream({"messages": original_chat_messages.to_messages(),
-                                                               "_tools": _tools,
-                                                               "_llm": _llm_with_tools},
-                                                              {"recursion_limit": recursion_limit},
-                                                              stream_mode="values"))
+        final_message = trace_stream(
+            react_tools_graph.stream(
+                {
+                    "messages": original_chat_messages.to_messages(),
+                    "_tools": _tools,
+                    "_llm": _llm_with_tools,
+                },
+                {"recursion_limit": recursion_limit},
+                stream_mode="values",
+            )
+        )
     except Exception as e:
         logging.error(f"Error while streaming to the react agent: {e}")
-        return {"messages": [{
-            'role': 'ai',
-            'content': json.dumps(f"Sorry, failed to answer using blueberry (invoke react agent)",
-                                  indent=4)}]}
+        return {
+            "messages": [
+                {
+                    "role": "ai",
+                    "content": json.dumps(
+                        f"Sorry, failed to answer using blueberry (invoke react agent)",
+                        indent=4,
+                    ),
+                }
+            ]
+        }
 
-    logger.info(f"=====> The agentic flow has finished executing the tools with parameters")
+    logger.info(
+        f"=====> The agentic flow has finished executing the tools with parameters"
+    )
     try:
         ai_response = final_message.content
 
         thinking_log += f"I am done. Returning a response to the user."
         session_thinking_log_as_str = ""
         for state_thinking_log in state["thinking_log"]:
-            session_thinking_log_as_str = " ".join([session_thinking_log_as_str, state_thinking_log.content])
-        session_thinking_log_as_str = " ".join([session_thinking_log_as_str, thinking_log])
+            session_thinking_log_as_str = " ".join(
+                [session_thinking_log_as_str, state_thinking_log.content]
+            )
+        session_thinking_log_as_str = " ".join(
+            [session_thinking_log_as_str, thinking_log]
+        )
 
         output_content = f"<think>{session_thinking_log_as_str}</think>\n{ai_response}"
     except Exception as e:
@@ -249,10 +313,6 @@ def execute_tools_with_parameters(state: State):
 
     logger.info(f"output_content: {output_content}")
 
-    messages = [{
-        'role': 'ai',
-        'content': output_content
-    }]
+    messages = [{"role": "ai", "content": output_content}]
     logging.info(f"=======>>> execute_tools_with_parameters. ended <<<=======")
-    return {"messages": messages,
-            "thinking_log": thinking_log}
+    return {"messages": messages, "thinking_log": thinking_log}

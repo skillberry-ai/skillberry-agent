@@ -24,43 +24,43 @@ temperature = config.get("temperature")
 
 
 if use_rits_proxy:
-    model_name = f"rits/{selected_model}".replace('.', '-').lower()
+    model_name = f"rits/{selected_model}".replace(".", "-").lower()
 
     llm = ChatOpenAI(
         model=f"{model_name}",
         temperature=temperature,
         max_retries=2,
         api_key=rits_api_key,
-        base_url=rits_proxy_api_url
+        base_url=rits_proxy_api_url,
     )
 
 else:
-    model = selected_model.split(
-        '/')[1].replace('.', '-').lower()
+    model = selected_model.split("/")[1].replace(".", "-").lower()
     url = f"{rits_api_url}/{model}/v1"
 
     llm = ChatOpenAI(
         model=f"{model}",
         temperature=temperature,
         max_retries=2,
-        api_key='/',
+        api_key="/",
         base_url=url,
-        default_headers={'RITS_API_KEY': rits_api_key}
+        default_headers={"RITS_API_KEY": rits_api_key},
     )
 
 
 def check_llm_communication():
 
-    logger.info(f"\n\n"
-                f"==> 0. Configuration:\n"
-                f"==> =================\n"
-                f"==> Using rits proxy: {use_rits_proxy}\n"
-                f"==> rits API URL: {rits_api_url}\n"
-                f"==> rits proxy API URL: {rits_proxy_api_url}\n"
-                f"==> =================\n"
-                f"==> Using model: {selected_model}\n"
-                f"==> Temperature: {temperature}\n"
-                )
+    logger.info(
+        f"\n\n"
+        f"==> 0. Configuration:\n"
+        f"==> =================\n"
+        f"==> Using rits proxy: {use_rits_proxy}\n"
+        f"==> rits API URL: {rits_api_url}\n"
+        f"==> rits proxy API URL: {rits_proxy_api_url}\n"
+        f"==> =================\n"
+        f"==> Using model: {selected_model}\n"
+        f"==> Temperature: {temperature}\n"
+    )
 
     try:
         llm.invoke("try to communicate with the llm")

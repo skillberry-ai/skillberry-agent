@@ -34,7 +34,9 @@ def create_function_from_string(code: str, func_name: str, scope: dict):
     return scope.get(func_name)
 
 
-def define_tool_dynamically(tool_name: str, tool_docstring: str, arguments_string: str, scope: dict):
+def define_tool_dynamically(
+    tool_name: str, tool_docstring: str, arguments_string: str, scope: dict
+):
     """
     Invoke a local tool based on OpenAI parameters definition to be used by the agentic workflow
     """
@@ -84,10 +86,12 @@ def generate_dynamic_tool(_tool: dict, scope: dict, _base_url: str):
     metadata = tools_service.get_tool_manifest(name)
     arguments_string = generate_function_arguments_from_metadata(metadata)
     tool_docstring = generate_function_docstring_from_metadata(metadata)
-    tool_func = define_tool_dynamically(tool_name=name,
-                                        tool_docstring=tool_docstring,
-                                        arguments_string=arguments_string,
-                                        scope=scope)
+    tool_func = define_tool_dynamically(
+        tool_name=name,
+        tool_docstring=tool_docstring,
+        arguments_string=arguments_string,
+        scope=scope,
+    )
     return tool_func
 
 
@@ -117,16 +121,16 @@ def json_schema_to_python_type(json_schema_type: str) -> str:
 def generate_function_arguments_from_metadata(metadata: str):
     parsed_info = metadata
     function_arguments = f"("
-    parameters = parsed_info['params']['properties']
+    parameters = parsed_info["params"]["properties"]
     param_strs = []
 
     for param_name, param_info in parameters.items():
-        param_type = json_schema_to_python_type(param_info['type'])
+        param_type = json_schema_to_python_type(param_info["type"])
         param_strs.append(f"{param_name}: {param_type}")
 
     try:
-        returns = parsed_info['returns']['properties']
-        returns_type = json_schema_to_python_type(returns['type'])
+        returns = parsed_info["returns"]["properties"]
+        returns_type = json_schema_to_python_type(returns["type"])
     except Exception as e:
         returns_type = "str"
 

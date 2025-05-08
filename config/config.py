@@ -13,7 +13,7 @@ class DynamicConfig:
         "float": float,
         "bool": bool,
         "list": list,
-        "dict": dict
+        "dict": dict,
     }
 
     def __init__(self, structure, config_file="/tmp/tool-agent-config.json"):
@@ -39,7 +39,9 @@ class DynamicConfig:
         new_config = {}
         for key, value in structure.items():
             if value["type"] == "group":
-                new_config[key] = self.apply_defaults(value["children"], config.get(key, {}))
+                new_config[key] = self.apply_defaults(
+                    value["children"], config.get(key, {})
+                )
             else:
                 new_config[key] = config.get(key, value["default"])
         return new_config
@@ -91,7 +93,9 @@ class DynamicConfig:
             value = float(value)
 
         if expected_type and not isinstance(value, expected_type):
-            raise TypeError(f"Expected '{expected_type.__name__}' for key '{key}', but got '{type(value).__name__}'")
+            raise TypeError(
+                f"Expected '{expected_type.__name__}' for key '{key}', but got '{type(value).__name__}'"
+            )
 
         # Traverse and set value
         for k in keys[:-1]:

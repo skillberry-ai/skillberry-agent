@@ -14,7 +14,9 @@ def code_missing_tools(state: State):
     need_to_generate_tools = state["need_to_generate_tools"]
     generated_tools = []
 
-    logging.info(f"code_missing_tools: need_to_generate_tools: {need_to_generate_tools}")
+    logging.info(
+        f"code_missing_tools: need_to_generate_tools: {need_to_generate_tools}"
+    )
     for need_to_generate_tool in need_to_generate_tools:
         name = need_to_generate_tool.name
 
@@ -23,7 +25,8 @@ def code_missing_tools(state: State):
         if not generate_tools_dynamically:
             thinking_log.append("I am not allowed to code new tools. ")
             logger.info(
-                f"!!! generate_tools_dynamically is False: tool {name} will not be generated !!!")
+                f"!!! generate_tools_dynamically is False: tool {name} will not be generated !!!"
+            )
             continue
 
         try:
@@ -36,7 +39,9 @@ def code_missing_tools(state: State):
             )
 
             if response is None:
-                logger.info(f"!!! tools_maker.generate_tool failed for tool {name}. The tool will not be generated !!!")
+                logger.info(
+                    f"!!! tools_maker.generate_tool failed for tool {name}. The tool will not be generated !!!"
+                )
                 thinking_log.append("I failed to code new tool {name}. ")
                 continue
 
@@ -47,15 +52,20 @@ def code_missing_tools(state: State):
             need_to_generate_tool.name = generated_tool_name
             need_to_generate_tool.description = generated_tool_description
 
-            logger.info(f"!!! tools_maker.generate_tool succeeded for tool {generated_tool_name} !!!")
-            thinking_log.append(f"I just coded a new ephemeral tool {generated_tool_name}. ")
+            logger.info(
+                f"!!! tools_maker.generate_tool succeeded for tool {generated_tool_name} !!!"
+            )
+            thinking_log.append(
+                f"I just coded a new ephemeral tool {generated_tool_name}. "
+            )
 
-            generated_tools.append({
-                "name": generated_tool_name,
-                "description": generated_tool_description
-            })
+            generated_tools.append(
+                {"name": generated_tool_name, "description": generated_tool_description}
+            )
         except Exception as e:
-            logger.error(f"code_missing_tools: generate_tool for '{name}' failed: {str(e)}")
+            logger.error(
+                f"code_missing_tools: generate_tool for '{name}' failed: {str(e)}"
+            )
 
     if len(generated_tools) > 0:
         thinking_log.append("I just coded ephemeral tools that I will use.")
@@ -72,7 +82,4 @@ def code_missing_tools(state: State):
 
     logging.info(f"=======>>> code_missing_tools. ended <<<=======")
 
-    return {
-        "generated_tools": generated_tools,
-        "thinking_log": thinking_log
-    }
+    return {"generated_tools": generated_tools, "thinking_log": thinking_log}

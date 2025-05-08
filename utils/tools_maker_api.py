@@ -35,12 +35,13 @@ class ToolsMaker:
         return True
 
     def generate_tool(
-            self,
-            tool_name: str,
-            tool_description: str,
-            tool_examples: str,
-            skip_validation: bool = False,
-            original_prompt: str = None) -> bool:
+        self,
+        tool_name: str,
+        tool_description: str,
+        tool_examples: str,
+        skip_validation: bool = False,
+        original_prompt: str = None,
+    ) -> bool:
         """
         Request blueberry tools maker to generate a tool with the given name, description and examples using
         blueberry-tools-maker-sdk.
@@ -68,7 +69,9 @@ class ToolsMaker:
             original_prompt=original_prompt,
             skip_validation=skip_validation,
         )
-        logger.debug("The response of ApiApi->api_generate_tool_generate_tool_tool_name_post {api_response}:\n")
+        logger.debug(
+            "The response of ApiApi->api_generate_tool_generate_tool_tool_name_post {api_response}:\n"
+        )
         return api_response
 
 

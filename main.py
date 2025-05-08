@@ -9,11 +9,10 @@ import colorlog
 from langchain.globals import set_verbose, set_debug
 from langchain.callbacks.tracers import ConsoleCallbackHandler
 
-from config.config_structure import CONFIG_STRUCTURE
 from llm.common import check_llm_communication
 from tools_agentic_graph import define_tools_agentic_graph
 
-from api_server import api_server
+from fast_api.api_server import api_server
 from config.config_ui import config_ui_app
 from config.config_ui import config
 from utils.tools_maker_api import tools_maker

@@ -64,11 +64,13 @@ class ToolsService:
         api_response = self.manifest_api.get_manifest_manifests_uid_get(tool_name)
         return api_response
 
-    def search_tools(self,
-                     tool_name: str,
-                     tool_description: str,
-                     max_numer_of_results: int = 3,
-                     similarity_threshold: float = 1.0):
+    def search_tools(
+        self,
+        tool_name: str,
+        tool_description: str,
+        max_numer_of_results: int = 3,
+        similarity_threshold: float = 1.0,
+    ):
         """
         Invoke a tool denoted by tool_name with given parameters using blueberry-tools-service-sdk.
 
