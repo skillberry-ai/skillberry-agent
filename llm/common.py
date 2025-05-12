@@ -39,7 +39,7 @@ else:
     url = f"{rits_api_url}/{model}/v1"
 
     llm = ChatOpenAI(
-        model=f"{model}",
+        model=f"{selected_model}",
         temperature=temperature,
         max_retries=2,
         api_key="/",
