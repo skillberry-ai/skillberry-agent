@@ -110,7 +110,10 @@ def tool_node(state: ReactToolsCallingAgentState):
             ToolMessage(
                 status=tool_invocation_status,
                 content=tool_result,
+                artifact=tool_result,
+                type="tool",
                 tool_call_id=tool_call["id"],
+                id=tool_call["id"],
             )
         )
 
@@ -120,7 +123,7 @@ def tool_node(state: ReactToolsCallingAgentState):
                 SystemMessage(
                     f"The last call to the tool: {tool_name} failed. "
                     f"Do not invoke the tool again. "
-                    f"Continue to response to the user without using the tool"
+                    f"Continue to response to the user without using the tool again"
                 )
             )
 
@@ -272,7 +275,7 @@ def execute_tools_with_parameters(state: State):
                     "_tools": _tools,
                     "_llm": _llm_with_tools,
                 },
-                {"recursion_limit": recursion_limit},
+                {"recursion_limit": recursion_limit, "max_execution_time": 120},
                 stream_mode="values",
             )
         )
