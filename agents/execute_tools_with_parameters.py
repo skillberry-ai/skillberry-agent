@@ -96,9 +96,18 @@ def tool_node(state: ReactToolsCallingAgentState):
                 if isinstance(message, ToolMessage):
                     if message.content == tool_result:
                         logging.error(
-                            f"=====> The tool was already called by the agent, "
+                            f"=====> The tool {tool_name} was already called by the agent, "
                             f"and returned the same response: {tool_result}"
                             f"\n!!! failure !!!\n"
+                        )
+                        outputs.append(
+                            SystemMessage(
+                                f"A previous call to {tool_name} with parameters {tool_args} "
+                                f"already resulted {tool_result} !!!"
+                                f"Do not invoke the {tool_name} again with the parameters {tool_args} !!!"
+                                f"Continue to response to the user without calling {tool_name} "
+                                f"with the parameters {tool_args} !!!"
+                            )
                         )
                         tool_invocation_status = "error"
 
@@ -106,26 +115,19 @@ def tool_node(state: ReactToolsCallingAgentState):
             logging.error(f"tool_node: Error while calling tool {tool_name}: {e}")
             tool_invocation_status = "error"
 
-        outputs.append(
-            ToolMessage(
-                status=tool_invocation_status,
-                content=tool_result,
-                artifact=tool_result,
-                type="tool",
-                tool_call_id=tool_call["id"],
-                id=tool_call["id"],
-            )
-        )
-
-        if tool_invocation_status == "error":
-            thinking_log += f"calling the tool {tool_name} failed. "
+        if tool_invocation_status is "success":
             outputs.append(
-                SystemMessage(
-                    f"The last call to the tool: {tool_name} failed. "
-                    f"Do not invoke the tool again. "
-                    f"Continue to response to the user without using the tool again"
+                ToolMessage(
+                    status=tool_invocation_status,
+                    content=tool_result,
+                    artifact=tool_result,
+                    type="tool",
+                    tool_call_id=tool_call["id"],
+                    id=tool_call["id"],
                 )
             )
+        else:
+            thinking_log += f"calling the tool {tool_name} failed. "
 
     return {"messages": outputs, "thinking_log": thinking_log}
 
