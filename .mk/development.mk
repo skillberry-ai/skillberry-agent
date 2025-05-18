@@ -11,3 +11,6 @@ test-e2e: install_requirements install_dev_requirements ## Test end-to-end the t
 lint: install_requirements ## Lint the tools-maker
 	black --check --diff --color agents config fast_api llm tools utils || \
 		(echo "Lint Failed. Please run 'black agents config fast_api llm tools utils' to fix the issues" && exit 1)
+
+fix-lint: ## Fix lint issues
+	black agents config fast_api llm tools utils

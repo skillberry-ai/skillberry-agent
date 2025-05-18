@@ -74,11 +74,11 @@ class ToolCategory(str, Enum):
 
 tool_category_description = {
     ToolCategory.FACTUAL_TOOL_CATEGORY: "a tool that provides factual knowledge "
-                                        "(e.g., time, date, location, user, weather data, company financials).",
+    "(e.g., time, date, location, user, weather data, company financials).",
     ToolCategory.EXTERNAL_TOOL_CATEGORY: "a tool that retrieval data from an external source "
-                                         "(e.g., databases, APIs, search engines).",
+    "(e.g., databases, APIs, search engines).",
     ToolCategory.STRUCTURED_TOOL_CATEGORY: "a tool that performs structured operations "
-                                           "(e.g., math, date calculations, unit conversions).",
+    "(e.g., math, date calculations, unit conversions).",
 }
 
 # only tools that are `True` will be candidates for generation
@@ -94,7 +94,9 @@ category_descriptions = "\n".join(
 
 
 class SuggestedTool(BaseModel):
-    name: str = Field(description="the name of the tool (in hungarian notation, no spaces, no special characters)")
+    name: str = Field(
+        description="the name of the tool (in hungarian notation, no spaces, no special characters)"
+    )
     description: str = Field(description="the description of the tool")
     examples: str = Field(description="Usage examples of the tool")
     category: str = Field(
@@ -147,7 +149,7 @@ def find_useful_tools(state: State):
             tool_category_candidate_for_generation[suggested_tool.category]
         )
 
-        suggested_tool.name = re.sub(r'[^A-Za-z_]', '_', suggested_tool.name)
+        suggested_tool.name = re.sub(r"[^A-Za-z_]", "_", suggested_tool.name)
         useful_tools.append(suggested_tool)
 
     if useful_tools is not None:
