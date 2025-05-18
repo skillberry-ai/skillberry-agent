@@ -63,7 +63,7 @@ class ToolsMaker:
         logger.info(f"generate_tool_tools_maker called for tool: {tool_name}")
 
         api_response = self.api_instance.api_generate_tool_generate_tool_tool_name_post(
-            tool_name=original_prompt,
+            tool_name=tool_name,
             tool_description=tool_description,
             tool_examples=tool_examples,
             original_prompt=original_prompt,

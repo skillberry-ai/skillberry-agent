@@ -1,4 +1,5 @@
 import logging
+import re
 from enum import Enum
 from typing import List, Optional
 
@@ -21,12 +22,14 @@ find_useful_tools_chat_prompt_template = ChatPromptTemplate(
         (
             "system",
             "For each suggested tool and function, "
-            "include the function name, and a list of usage examples",
+            "include the function name, and a list of usage examples.",
         ),
         (
             "system",
             "For each suggested tool and function, "
-            "specify the name of the tool in hungarian notation and provide crisp and informative description",
+            "specify the name of the tool in hungarian notation and provide crisp and informative description."
+            "Tool names should include only the letters A-Z and a-z, digits 0-9, and underscores. "
+            "Do not use spaces or any other characters.",
         ),
         ("system", "Suggest only simple tools and simple functions"),
         (
@@ -70,9 +73,12 @@ class ToolCategory(str, Enum):
 
 
 tool_category_description = {
-    ToolCategory.FACTUAL_TOOL_CATEGORY: "a tool that provides factual knowledge (e.g., time, date, location, user, weather data, company financials).",
-    ToolCategory.EXTERNAL_TOOL_CATEGORY: "a tool that retrieval data from an external source (e.g., databases, APIs, search engines).",
-    ToolCategory.STRUCTURED_TOOL_CATEGORY: "a tool that performs structured operations (e.g., math, date calculations, unit conversions).",
+    ToolCategory.FACTUAL_TOOL_CATEGORY: "a tool that provides factual knowledge "
+                                        "(e.g., time, date, location, user, weather data, company financials).",
+    ToolCategory.EXTERNAL_TOOL_CATEGORY: "a tool that retrieval data from an external source "
+                                         "(e.g., databases, APIs, search engines).",
+    ToolCategory.STRUCTURED_TOOL_CATEGORY: "a tool that performs structured operations "
+                                           "(e.g., math, date calculations, unit conversions).",
 }
 
 # only tools that are `True` will be candidates for generation
@@ -88,7 +94,7 @@ category_descriptions = "\n".join(
 
 
 class SuggestedTool(BaseModel):
-    name: str = Field(description="the name of the tool")
+    name: str = Field(description="the name of the tool (in hungarian notation, no spaces, no special characters)")
     description: str = Field(description="the description of the tool")
     examples: str = Field(description="Usage examples of the tool")
     category: str = Field(
@@ -140,6 +146,8 @@ def find_useful_tools(state: State):
         suggested_tool.candidate_for_generation = (
             tool_category_candidate_for_generation[suggested_tool.category]
         )
+
+        suggested_tool.name = re.sub(r'[^A-Za-z_]', '_', suggested_tool.name)
         useful_tools.append(suggested_tool)
 
     if useful_tools is not None:
