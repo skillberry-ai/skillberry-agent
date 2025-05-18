@@ -127,4 +127,13 @@ make run
 
 ### Engage with the configuration API 📜
 
-Open a browser against `http://127.0.0.1:7001`.
+UI Mode: Open a browser against `http://127.0.0.1:7001`.
+API Mode: use the API end points at `http://127.0.0.1:7001/api`. For example:
+
+```bash
+curl -X PUT http://localhost:7001/api/config \
+     -H "Content-Type: application/json" \
+     -d '{"advanced__similarity_threshold": 0.8}'
+
+curl localhost:7001/api/config
+```

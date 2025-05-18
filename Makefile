@@ -41,10 +41,18 @@ git_hooks_setup:
 	@git config core.hooksPath .githooks
 	@chmod +x .githooks/*
 
-install_requirements: git_hooks_setup # Install requirements
+.PHONY: check-venv
+check-venv:
+	@python -c "import sys, os; in_venv = ('VIRTUAL_ENV' in os.environ) or (hasattr(sys, 'real_prefix') or (hasattr(sys, 'base_prefix') and sys.base_prefix != sys.prefix)); print('✅ In virtual environment' if in_venv else '❌ Not in virtual environment'); exit(0) if in_venv else exit(1)"
+
+.PHONY: check_rits_key
+check_rits_key:
+	@if [ -z $$RITS_API_KEY ]; then echo "RITS_API_KEY is not set. It is required for the agent service"; exit 1; fi
+
+install_requirements: check-venv git_hooks_setup # Install requirements
 	pip install -r requirements.txt
 	
-run: install_requirements ## Start blueberry tools-agent.
+run: check_rits_key install_requirements  ## Start blueberry tools-agent.
 	python main.py
 
 ##@ Docker

@@ -2,6 +2,7 @@ import dash
 from dash import dcc, html
 from dash.dependencies import Input, Output, State, ALL
 import flask
+from flask import request, jsonify
 
 from config.config import DynamicConfig
 from config.config_structure import CONFIG_STRUCTURE
@@ -9,6 +10,70 @@ from config.config_structure import CONFIG_STRUCTURE
 # Initialize Flask and Dash
 server = flask.Flask(__name__)
 config_ui_app = dash.Dash(__name__, server=server)
+
+
+# GET current config
+@server.route("/api/config", methods=["GET"])
+def get_config():
+    """
+    This function returns the current configuration as a JSON object.
+
+    Usage example:
+
+    ```bash
+    curl localhost:7001/api/config
+    ```
+    """
+
+    return jsonify(config.config)
+
+
+@server.route("/api/config", methods=["PUT"])
+def update_config_api():
+    """
+    This function updates the current configuration
+
+    Usage example:
+
+    ```bash
+    curl -X PUT http://localhost:7001/api/config \
+         -H "Content-Type: application/json" \
+         -d '{"advanced__similarity_threshold": 0.8}'
+    ```
+    """
+
+    updates = request.json
+    if not isinstance(updates, dict):
+        return jsonify({"error": "Invalid JSON format"}), 400
+
+    for key, value in updates.items():
+        try:
+            if config.get(key):
+                config.set(key, value)
+            else:
+                return jsonify({"error": f"Unknown config key: {key}"}), 400
+        except (KeyError, TypeError) as e:
+            return jsonify({"error": str(e)}), 400
+
+    config.save_config()
+    return jsonify({"status": "Configuration updated"}), 200
+
+
+# POST restore defaults
+@server.route("/api/config/restore", methods=["POST"])
+def restore_defaults_api():
+    """
+    This function restores the default configuration
+
+    Usage example:
+    ```bash
+    curl -X POST http://localhost:7001/api/config/restore
+    ```
+    """
+
+    config.restore_defaults()
+    return jsonify({"status": "Defaults restored"}), 200
+
 
 # Load configuration
 config = DynamicConfig(CONFIG_STRUCTURE)
