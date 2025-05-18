@@ -104,7 +104,7 @@ def tool_node(state: ReactToolsCallingAgentState):
                             SystemMessage(
                                 f"A previous call to {tool_name} with parameters {tool_args} "
                                 f"already resulted {tool_result} !!!"
-                                f"Do not invoke the {tool_name} again with the parameters {tool_args} !!!"
+                                f"Do not invoke the {tool_name} again with the parameters {tool_args} !!! "
                                 f"Continue to response to the user without calling {tool_name} "
                                 f"with the parameters {tool_args} !!!"
                             )
