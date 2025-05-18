@@ -47,7 +47,7 @@ check-venv:
 
 update_git_version:
 	@echo "Writing git version to fast_api/git_version.py"
-	@echo "__git_version__ = '$(shell git describe --always --dirty)'" > fast_api/git_version.py
+	@echo "__git_version__ = \"$(shell git describe --always --dirty)\"" > fast_api/git_version.py
 
 .PHONY: check_rits_key
 check_rits_key:
