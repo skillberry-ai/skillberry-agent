@@ -48,14 +48,10 @@ def update_config_api():
 
     for key, value in updates.items():
         try:
-            if config.get(key):
-                config.set(key, value)
-            else:
-                return jsonify({"error": f"Unknown config key: {key}"}), 400
+            config.set(key, value)
         except (KeyError, TypeError) as e:
             return jsonify({"error": str(e)}), 400
 
-    config.save_config()
     return jsonify({"status": "Configuration updated"}), 200
 
 
