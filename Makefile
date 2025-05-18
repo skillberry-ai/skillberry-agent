@@ -45,11 +45,15 @@ git_hooks_setup:
 check-venv:
 	@python -c "import sys, os; in_venv = ('VIRTUAL_ENV' in os.environ) or (hasattr(sys, 'real_prefix') or (hasattr(sys, 'base_prefix') and sys.base_prefix != sys.prefix)); print('✅ In virtual environment' if in_venv else '❌ Not in virtual environment'); exit(0) if in_venv else exit(1)"
 
+update_git_version:
+	@echo "Writing git version to fast_api/git_version.py"
+	@echo "__git_version__ = '$(shell git describe --always --dirty)'" > fast_api/git_version.py
+
 .PHONY: check_rits_key
 check_rits_key:
 	@if [ -z $$RITS_API_KEY ]; then echo "RITS_API_KEY is not set. It is required for the agent service"; exit 1; fi
 
-install_requirements: check-venv git_hooks_setup # Install requirements
+install_requirements: update_git_version check-venv git_hooks_setup # Install requirements
 	pip install -r requirements.txt
 	
 run: check_rits_key install_requirements  ## Start blueberry tools-agent.

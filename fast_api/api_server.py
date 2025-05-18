@@ -4,12 +4,17 @@ import time
 from fastapi import FastAPI, HTTPException
 from langchain_core.messages import BaseMessage
 from pydantic import BaseModel, Field
+from fast_api.git_version import __git_version__
 import requests
 
 from tools_agentic_graph import stream_graph_updates
 
 # Define the API
-api_server = FastAPI()
+api_server = FastAPI(
+    title="Blueberry Tools Agent",
+    description="Blueberry Tools Agent API",
+    version=__git_version__,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -51,6 +56,7 @@ def api_prompt(
 
 
 @api_server.post("/chat/completions", tags=["chat"])
+@api_server.post("/v1/chat/completions", tags=["chat"])
 def api_chat_completion(request: ChatRequest):
     try:
         chat_history = []
@@ -121,3 +127,8 @@ def api_chat_completion(request: ChatRequest):
 @api_server.get("/health")
 def health_check():
     return {"status": "ok"}
+
+
+@api_server.get("/version")
+def health_check():
+    return {"version": __git_version__}
