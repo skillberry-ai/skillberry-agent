@@ -4,6 +4,7 @@ from dash.dependencies import Input, Output, State, ALL
 import flask
 from flask import request, jsonify
 
+from config.generated_tools_count import generated_tools_count
 from config.config import DynamicConfig
 from config.config_structure import CONFIG_STRUCTURE
 
@@ -51,6 +52,9 @@ def update_config_api():
             config.set(key, value)
         except (KeyError, TypeError) as e:
             return jsonify({"error": str(e)}), 400
+
+    # Reset the generated tools count on every configuration update
+    generated_tools_count.reset_generated_tools_count()
 
     return jsonify({"status": "Configuration updated"}), 200
 

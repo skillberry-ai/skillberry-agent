@@ -4,14 +4,12 @@ from config.config_ui import config
 from agents.state import State
 
 from utils.tools_maker_api import tools_maker
+from config.generated_tools_count import generated_tools_count
 
 logger = logging.getLogger(__name__)
 
-generated_tools_count = 0
-
 
 def code_missing_tools(state: State):
-    global generated_tools_count
     thinking_log = []
     logging.info(f"=======>>> code_missing_tools. starts <<<=======")
     need_to_generate_tools = state["need_to_generate_tools"]
@@ -35,7 +33,10 @@ def code_missing_tools(state: State):
         max_tools_generation_per_execution = config.get(
             "advanced__max_tools_generation_per_execution"
         )
-        if generated_tools_count >= max_tools_generation_per_execution:
+        if (
+            generated_tools_count.get_generated_tools_count()
+            >= max_tools_generation_per_execution
+        ):
             thinking_log.append("I reached the limit of tools I can code. ")
             logger.info(
                 f"!!! generated tools count >= {max_tools_generation_per_execution}: "
@@ -72,7 +73,9 @@ def code_missing_tools(state: State):
             thinking_log.append(
                 f"I just coded a new ephemeral tool {generated_tool_name}. "
             )
-            generated_tools_count += 1
+
+            # Increment the generated tools count
+            generated_tools_count.increment_generated_tools_count()
 
             generated_tools.append(
                 {"name": generated_tool_name, "description": generated_tool_description}
