@@ -2,10 +2,10 @@ VERSION ?= latest
 
 ##@ Development
 
-test: install_requirements ## Test the tools-agent
+test: check_rits_key install_requirements ## Test the tools-agent
 	pytest -s
 
-test-e2e: install_requirements install_dev_requirements ## Test end-to-end the tools agent
+test-e2e: check_rits_key install_requirements install_dev_requirements ## Test end-to-end the tools agent
 	pytest -s tests/e2e
 
 lint: install_requirements ## Lint the tools-maker
