@@ -38,7 +38,7 @@ class ToolsMaker:
         self,
         tool_name: str,
         tool_description: str,
-        tool_examples: str,
+        usage_examples: str,
         skip_validation: bool = False,
         original_prompt: str = None,
     ) -> bool:
@@ -49,7 +49,7 @@ class ToolsMaker:
         Parameters:
             tool_name (str): tool name
             tool_description (str): tool description
-            tool_examples (str): tool examples
+            usage_examples (str): tool usage examples
             skip_validation (bool): whether to skip validation process
             original_prompt (str): original prompt to be used for tool generation
 
@@ -62,10 +62,10 @@ class ToolsMaker:
         """
         logger.info(f"generate_tool_tools_maker called for tool: {tool_name}")
 
-        api_response = self.api_instance.api_generate_tool_generate_tool_tool_name_post(
+        api_response = self.api_instance.api_generate_tool_generate_tool_post(
             tool_name=tool_name,
             tool_description=tool_description,
-            tool_examples=tool_examples,
+            usage_examples=usage_examples,
             original_prompt=original_prompt,
             skip_validation=skip_validation,
         )

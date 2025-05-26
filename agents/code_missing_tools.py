@@ -61,8 +61,8 @@ def code_missing_tools(state: State):
                 continue
 
             # update the tool with the generated name and description
-            generated_tool_name = response["detail"]["name"]
-            generated_tool_description = response["detail"]["description"]
+            generated_tool_name = response["detail"]["manifest"]["name"]
+            generated_tool_description = response["detail"]["manifest"]["description"]
 
             need_to_generate_tool.name = generated_tool_name
             need_to_generate_tool.description = generated_tool_description

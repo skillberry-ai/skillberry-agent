@@ -97,13 +97,23 @@ def main():
         sleep(100000)
 
     # make sure we can communicate with the tools-service
-    if not (tools_service.check_communication()):
+    try:
+        tools_service_communication = tools_service.check_communication()
+    except Exception as e:
+        tools_service_communication = False
+
+    if not tools_service_communication:
         logger.error("Can't communicate with the tools-service, please check network, VPN, access keys etc.")
         logging.error("Only the configuration UI is working now, allowing to change the configuration and restart.")
         sleep(100000)
 
     # make sure we can communicate with the tools-maker
-    if not (tools_maker.check_communication()):
+    try:
+        tools_maker_communication = tools_maker.check_communication()
+    except Exception as e:
+        tools_maker_communication = False
+
+    if not tools_maker_communication:
         logger.error("Can't communicate with the tools-maker, please check network, VPN, access keys etc.")
         logging.error("Only the configuration UI is working now, allowing to change the configuration and restart.")
         sleep(100000)
