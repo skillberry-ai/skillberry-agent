@@ -6,6 +6,7 @@ import uvicorn
 import threading
 import colorlog
 
+from fast_api.git_version import __git_version__
 from langchain.globals import set_verbose, set_debug
 from langchain.callbacks.tracers import ConsoleCallbackHandler
 
@@ -121,9 +122,8 @@ def main():
     # define the agentic graph
     define_tools_agentic_graph()
 
-    # user_input = "What is the 1294th prime number?"
-    # user_input = "How much is 2+2?"
-    # stream_graph_updates(tools_agentic_graph, user_input)
+    # emit the git version
+    logging.info(f"blueberry-tools-agent version {__git_version__} is running.")
 
     # Run the API server
     uvicorn.run(api_server, host="0.0.0.0", port=7000)

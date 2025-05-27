@@ -155,3 +155,6 @@ dmypy.json
 cython_debug/
 
 .vscode/
+
+# git version
+fast_api/git_version.py

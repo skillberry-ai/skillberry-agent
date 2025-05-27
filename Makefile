@@ -1,13 +1,14 @@
 .DEFAULT_GOAL := help
 
-BUILD_VERSION ?= latest
-BUILD_DATE := $(shell date +%Y-%m-%d\ %H:%M)
+BUILD_VERSION ?= $(shell git describe --always --dirty 2>/dev/null || echo "unknown")
+BUILD_DATE := $(shell date "+%Y-%m-%d %H:%M")
+
+DOCKER_NAME ?= $(DOCKER_REPOSITORY_NAME)/$(IMAGE_NAME)
+DOCKER_VERSION ?= $(BUILD_VERSION)
 
 DOCKER_REPOSITORY_NAME ?= artifactory.haifa.ibm.com:5130
 IMAGE_NAME = blueberry-tools-agent
 
-DOCKER_NAME = $(DOCKER_REPOSITORY_NAME)/$(IMAGE_NAME)
-DOCKER_VERSION = $(BUILD_VERSION)
 
 
 TOOLS_SERVICE_SENTINEL=/tmp/tools-service.pid
@@ -47,7 +48,7 @@ check-venv:
 
 update_git_version:
 	@echo "Writing git version to fast_api/git_version.py"
-	@echo "__git_version__ = \"$(shell git describe --always)\"" > fast_api/git_version.py
+	@echo "__git_version__ = \"$(BUILD_VERSION)\"" > fast_api/git_version.py
 
 .PHONY: check_rits_key
 check_rits_key:
@@ -61,13 +62,19 @@ run: check_rits_key install_requirements  ## Start blueberry tools-agent.
 
 ##@ Docker
 
-docker_build: ## Build docker image
+docker_build: update_git_version ## Build docker image
 	for key in ~/.ssh/*; do ssh-add "$$key" 2>/dev/null || true ; done
-	DOCKER_BUILDKIT=1 docker build --ssh default --progress=plain --build-arg BUILD_VERSION=$(BUILD_VERSION) --build-arg BUILD_DATE="$(BUILD_DATE)" -t $(DOCKER_NAME):$(DOCKER_VERSION) .
+	DOCKER_BUILDKIT=1 docker buildx build --ssh default \
+							--build-arg BUILD_VERSION=$(BUILD_VERSION) --build-arg BUILD_DATE="$(BUILD_DATE)" \
+							-t $(DOCKER_NAME):$(DOCKER_VERSION) \
+							-t $(DOCKER_NAME):latest .
 
-docker_run: docker_stop ## Run the docker image
+docker_run: docker_stop ## Run the docker image privileged
 	@echo "Running Docker container: $(IMAGE_NAME)"
-	docker run --name $(IMAGE_NAME) --env-file .env -d -v /tmp:/tmp -p 7000:7000 -p 7001:7001 $(DOCKER_NAME):$(DOCKER_VERSION)
+	-@rm /tmp/tools-agent.log
+	docker run --privileged --name $(IMAGE_NAME) --env-file .env --env RITS_API_KEY \
+		   -d -v /tmp:/tmp -p 7000:7000 \
+		   -p 7001:7001 $(DOCKER_NAME):$(DOCKER_VERSION)
 
 docker_stop: ## Stop the docker image
 	@echo "Stopping Docker container: $(IMAGE_NAME)"
@@ -77,6 +84,7 @@ docker_stop: ## Stop the docker image
 # make sure that you are login with required credentials
 docker_push: docker_build ## Push docker image
 	docker push $(DOCKER_NAME):$(DOCKER_VERSION)
+	docker push $(DOCKER_NAME):latest
 
 include .mk/development.mk
 include .mk/ci.mk
