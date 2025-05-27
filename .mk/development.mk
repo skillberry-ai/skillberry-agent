@@ -44,8 +44,8 @@ release: check_rits_key check-git-main check-git-clean install_requirements  ## 
 	@sleep 10
 	@echo "===> Generating git tag $(RELEASE_VERSION) and creating GitHub release"
 	@git tag -a $(RELEASE_VERSION) -m "Release $(RELEASE_VERSION)" && \
-	git push origin $VERSION && \
-	gh release create $VERSION --generate-notes
+	git push origin $(RELEASE_VERSION) && \
+	gh release create $(RELEASE_VERSION) --generate-notes
 
 	@echo "===> Building and pushing new docker image"
 	@make docker_push
