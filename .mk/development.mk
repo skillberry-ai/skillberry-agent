@@ -16,11 +16,12 @@ fix-lint: ## Fix lint issues
 	black agents config fast_api llm tools utils
 
 check-git-clean:
-	@if ! git diff-index --quiet HEAD --; then \
-		echo "! You have uncommitted changes. Please commit or stash them before releasing."; \
-		echo "=== Uncommitted changes ==="; \
-		git diff --stat; \
-		exit 1; \
+	@changes="$$(git status --porcelain)"; \
+	if [ -n "$$changes" ]; then \
+	  echo "! You have uncommitted changes. Please commit, stash or clean them before releasing."; \
+	  echo "=== Changes ==="; \
+	  echo "$$changes"; \
+	  exit 1; \
 	fi
 
 check-git-main:
