@@ -71,7 +71,7 @@ docker_build: update_git_version ## Build docker image
 
 docker_run: docker_stop ## Run the docker image privileged
 	@echo "Running Docker container: $(IMAGE_NAME)"
-	-@rm /tmp/tools-agent.log
+	-@sudo rm /tmp/tools-agent.log
 	docker run --privileged --name $(IMAGE_NAME) --env-file .env --env RITS_API_KEY \
 		   -d -v /tmp:/tmp -p 7000:7000 \
 		   -p 7001:7001 $(DOCKER_NAME):$(DOCKER_VERSION)
