@@ -82,7 +82,7 @@ logging.basicConfig(level=log_level, handlers=[console_handler, file_handler])
 
 
 def run_config_ui():
-    config_ui_app.run_server(debug=True, use_reloader=False, host="0.0.0.0", port=7001)
+    config_ui_app.run(debug=True, use_reloader=False, host="0.0.0.0", port=7001)
 
 
 def main():

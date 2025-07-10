@@ -117,7 +117,7 @@ class ToolsService:
 
         execute_response = (
             self.manifest_api.execute_manifest_manifests_execute_uid_post(
-                uid, body=parameters
+                uid, parameters
             )
         )
         # FIXME: should be const in all places
