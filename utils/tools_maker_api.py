@@ -23,7 +23,7 @@ class ToolsMaker:
         """
         logger.info("check_communication called")
         try:
-            self.api_instance.api_validate_tool_validate_tool_tool_name_post("test")
+            self.api_instance.api_validate_tool_validate_tool_post("test")
 
         except blueberry_tools_maker_sdk.ApiException as e:
             if e.status == 404 or e.status == 500:
@@ -39,7 +39,6 @@ class ToolsMaker:
         tool_name: str,
         tool_description: str,
         usage_examples: str,
-        skip_validation: bool = False,
         original_prompt: str = None,
     ) -> bool:
         """
@@ -50,7 +49,6 @@ class ToolsMaker:
             tool_name (str): tool name
             tool_description (str): tool description
             usage_examples (str): tool usage examples
-            skip_validation (bool): whether to skip validation process
             original_prompt (str): original prompt to be used for tool generation
 
         Returns:
@@ -67,7 +65,6 @@ class ToolsMaker:
             tool_description=tool_description,
             usage_examples=usage_examples,
             original_prompt=original_prompt,
-            skip_validation=skip_validation,
         )
         logger.debug(
             "The response of ApiApi->api_generate_tool_generate_tool_tool_name_post {api_response}:\n"

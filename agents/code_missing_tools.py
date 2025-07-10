@@ -49,7 +49,6 @@ def code_missing_tools(state: State):
                 need_to_generate_tool.name,
                 need_to_generate_tool.description,
                 need_to_generate_tool.examples,
-                skip_validation=False,
                 original_prompt=state["original_user_prompt"].content,
             )
 
