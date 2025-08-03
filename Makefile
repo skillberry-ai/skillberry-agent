@@ -6,7 +6,7 @@ BUILD_DATE := $(shell date "+%Y-%m-%d %H:%M")
 DOCKER_NAME ?= $(DOCKER_REPOSITORY_NAME)/$(IMAGE_NAME)
 DOCKER_VERSION ?= $(BUILD_VERSION)
 
-DOCKER_REPOSITORY_NAME ?= artifactory.haifa.ibm.com:5130
+DOCKER_REPOSITORY_NAME ?= us.icr.io/research3
 IMAGE_NAME = blueberry-tools-agent
 
 

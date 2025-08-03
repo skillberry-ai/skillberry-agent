@@ -137,3 +137,7 @@ curl -X PUT http://localhost:7001/api/config \
 
 curl localhost:7001/api/config
 ```
+
+## 📚 Additional documentation can be found at [docs](docs).
+
+* Registry details can be found [here](docs/container-reigistry.md)
