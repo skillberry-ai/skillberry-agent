@@ -91,6 +91,13 @@ release: check-rits-watsonx-envs check-git-main check-git-clean install_requirem
 	fi
 
 
+	#
+	# Important: change back to release branch so that docker image is built with customized
+	# toml/requirement files
+	#
+	@git checkout branch-$(RELEASE_VERSION)
+
+
 
 	@echo "===> Building and pushing new docker image"
 	@make docker_push
