@@ -35,7 +35,8 @@ def create_function_from_string(code: str, func_name: str, scope: dict):
 
 
 def define_tool_dynamically(
-    tool_name: str, tool_docstring: str, arguments_string: str, scope: dict
+    tool_name: str, tool_docstring: str, arguments_string: str, scope: dict,
+    env_id: str
 ):
     """
     Invoke a local tool based on OpenAI parameters definition to be used by the agentic workflow
@@ -44,6 +45,7 @@ def define_tool_dynamically(
     # the function will use rest against the tool_service_api to execute the tool
     # with the required parameters
     tool_function_name = re.sub(r"[. ]", "_", tool_name)
+    http_headers = {"env_id": env_id}
     python_code = f"""
 import requests
 import json
@@ -67,10 +69,11 @@ def {tool_function_name} {arguments_string}:
     param_dict = {{arg: values[arg] for arg in args}}
     try:
         print(f"Calling tools_service.execute_tool with: {tool_function_name} and parameters: {{param_dict}}")
-        return_value = tools_service.execute_tool("{tool_function_name}",param_dict)
+        return_value = tools_service.execute_tool("{tool_function_name}",param_dict, http_headers={http_headers})
     except Exception as e:
-        print(f"Error executing tool: {{e}}")
-        return None
+        cleaned_return_value = f"EXCEPTION:Error executing tool: {{e}}"
+        print(cleaned_return_value)
+        return cleaned_return_value
             
     print (f"return_value from tools_service: {{return_value}}")
     cleaned_return_value = return_value.strip().replace('"', '')
@@ -81,16 +84,26 @@ def {tool_function_name} {arguments_string}:
     return _tool
 
 
-def generate_dynamic_tool(_tool: dict, scope: dict, _base_url: str):
+def generate_dynamic_tool(_tool: dict, scope: dict, env_id: str):
     name = _tool["name"]
     metadata = tools_service.get_tool_manifest(name)
+
+    # print (f"@@@@@@@@\n\n  {(json.dumps(metadata, indent=4))} \n\n@@@@@@@@")
+
     arguments_string = generate_function_arguments_from_metadata(metadata)
+
+    # print (f"@@@@@@@@\n\n {arguments_string} \n\n@@@@@@@@")
+
     tool_docstring = generate_function_docstring_from_metadata(metadata)
+
+    # print (f"@@@@@@@@\n\n  {tool_docstring} \n\n@@@@@@@@")
+
     tool_func = define_tool_dynamically(
         tool_name=name,
         tool_docstring=tool_docstring,
         arguments_string=arguments_string,
         scope=scope,
+        env_id=env_id
     )
     return tool_func
 

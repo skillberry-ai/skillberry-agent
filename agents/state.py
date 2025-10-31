@@ -15,5 +15,6 @@ class State(TypedDict):
     existing_tools: List[Dict[str, str]]
     need_to_generate_tools: List[Dict[str, str]]
     generated_tools: List[Dict[str, str]]
+    env_id: str
 
     messages: Annotated[Sequence[BaseMessage], add_messages]

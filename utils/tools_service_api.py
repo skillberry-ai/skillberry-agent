@@ -96,7 +96,7 @@ class ToolsService:
         )
         return response
 
-    def execute_tool(self, tool_name: str, parameters: dict):
+    def execute_tool(self, tool_name: str, parameters: dict, http_headers: dict = None):
         """
         Invoke a tool denoted by tool_name with given parameters using blueberry-tools-service-sdk.
 
@@ -118,7 +118,10 @@ class ToolsService:
         execute_response = (
             self.manifest_api.execute_manifest_manifests_execute_uid_post(
                 uid, parameters
-            )
+            ) if not http_headers else
+            self.manifest_api.execute_manifest_manifests_execute_uid_post_with_http_info(
+                uid, parameters, _headers=http_headers
+            ).data
         )
         # FIXME: should be const in all places
         return execute_response["return value"]

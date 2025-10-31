@@ -1,7 +1,7 @@
 import logging
 import time
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
 from langchain_core.messages import BaseMessage
 from pydantic import BaseModel, Field
 from fast_api.git_version import __git_version__
@@ -57,15 +57,24 @@ def api_prompt(
 
 @api_server.post("/chat/completions", tags=["chat"])
 @api_server.post("/v1/chat/completions", tags=["chat"])
-def api_chat_completion(request: ChatRequest):
+def api_chat_completion(chat_request: ChatRequest, request: Request):
+
+    headers = request.headers
+    env_id = headers.get("env_id") 
+
+    logging.info(f"@@@@@@@@@@@@@@@@")
+    logging.info(f"Headers env_id: {env_id}")
+    logging.info(f"@@@@@@@@@@@@@@@@")
+
     try:
         chat_history = []
-        for message in request.messages:
+        for message in chat_request.messages:
             chat_history.append(message.to_base_message())
 
         last_user_prompt = chat_history[-1]
         response = stream_graph_updates(
-            chat_history=chat_history, original_user_prompt=last_user_prompt
+            chat_history=chat_history, original_user_prompt=last_user_prompt,
+            env_id=env_id
         )
         if response is None:
             logging.error("stream_graph_updates returned None")
