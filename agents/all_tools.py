@@ -402,7 +402,6 @@ def generate_list_of_tools(state: State):
         "get_reservation_details",
         "calculate",
         "cancel_reservation",
-        "get_reservation_details",
         "get_user_details",
         "list_all_airports",
         "search_direct_flight",
