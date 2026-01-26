@@ -11,6 +11,7 @@ from langchain_core.messages import BaseMessage
 
 from fast_api.git_version import __git_version__
 from utils.utils import SKILLBERRY_CONTEXT, unflatten_keys
+from agents.trajectory_manager import tracjectory_manager
 from agents.vmcp_server_manager import vmsm
 
 
@@ -151,6 +152,22 @@ def api_chat_completion(chat_request: ChatRequest, request: Request):
         raise HTTPException(status_code=500, detail=str(e))
 
 
+@api_server.get("/trajectory")
+def trajectory(request: Request):
+    headers = request.headers
+    logging.info("!!!!!!!!!!!!!!!!!")
+    logging.info(f"headers: {headers}")
+    logging.info("!!!!!!!!!!!!!!!!!")
+
+    skillberry_context = unflatten_keys(headers).get(SKILLBERRY_CONTEXT.lower())
+    logging.info(f"@@@@@@@@@@@@@@@@")
+    logging.info(f"skillberery_context: {skillberry_context}")            
+    logging.info(f"@@@@@@@@@@@@@@@@")
+
+    trajectory = tracjectory_manager.get_trajectory(skillberry_context)
+    return {"trajectory": trajectory}
+
+
 @api_server.post("/disconnect")
 def disconnect(request: Request):
     headers = request.headers
@@ -163,9 +180,13 @@ def disconnect(request: Request):
     logging.info(f"skillberery_context: {skillberry_context}")            
     logging.info(f"@@@@@@@@@@@@@@@@")
 
-    # ignore errors -- in case BTA is in non-mcp mode
+    # ignore errors, also in case BTA is in none-mcp mode
     try:
         vmsm.remove_server(skillberry_context)
+    except:
+        pass
+    try:
+        tracjectory_manager.remove_trajectory(skillberry_context)
     except:
         pass
 

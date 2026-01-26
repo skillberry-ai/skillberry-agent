@@ -15,7 +15,7 @@ from agents.common import (
     parse_tool_call_from_content,
     ReactToolsCallingAgentState,
 )
-from agents.remote_tools_wrapper import generate_dynamic_tool, TOOLS
+from agents.remote_tools_wrapper import generate_dynamic_tool, TOOLS, GENERATED_TOOLS
 from agents.state import State
 
 from llm.common import current_llm
@@ -330,7 +330,9 @@ def generate_list_of_tools(skillberry_context: Dict):
     tools = []
     scope = {}
 
-    for tool_name in TOOLS:
+    TOTAL_TOOLS = TOOLS + GENERATED_TOOLS
+
+    for tool_name in TOTAL_TOOLS:
         try:
             tool_func = generate_dynamic_tool(tool_name, scope, skillberry_context=skillberry_context)
             tools.append(tool_func)

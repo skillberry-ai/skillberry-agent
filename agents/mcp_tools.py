@@ -1,23 +1,23 @@
-
 import asyncio
 import json
 import logging
+import uuid
+from typing import Any, Dict
 
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.runnables import RunnableConfig
-
-from langchain_mcp_adapters.client import MultiServerMCPClient
-
 from langgraph.graph import StateGraph
 from langgraph.prebuilt import ToolNode, tools_condition
 
-from config.config_ui import config as _config
+from langchain_mcp_adapters.client import MultiServerMCPClient
 
-from agents.common import normalize_tool_node, ReactToolsCallingAgentState
-from agents.remote_tools_wrapper import TOOLS
+from agents.common import ReactToolsCallingAgentState, normalize_tool_node
+from agents.remote_tools_wrapper import TOOLS, GENERATED_TOOLS
 from agents.state import State
 from agents.vmcp_server_manager import vmsm
-
+from agents.trajectory_manager import tracjectory_manager
+from config.config_ui import config as _config
+from data_model.messages import AssistantMessage, ToolCall, ToolMessage
 from llm.common import current_llm
 from utils.utils import extract_base_url
 
@@ -48,7 +48,18 @@ execute_tools_with_parameters_chat_prompt_template = ChatPromptTemplate.from_mes
 )
 
 
-def call_llm_model_node(state: ReactToolsCallingAgentState, config: RunnableConfig):
+def call_llm_model_node(state: ReactToolsCallingAgentState, config: RunnableConfig) -> Dict:
+    """
+    Calls LLM model passing it all messages. The response message is appended to messages
+    list.
+
+    Args:
+        state (ReactToolsCallingAgentState): The state of the graph
+        config (RunnableConfig): The configuration of the graph
+
+    Returns:
+        Dict: The response to be added to messages list (in dict format)
+    """
     messages = state["messages"]
     last_message = state["messages"][-1]
 
@@ -59,6 +70,122 @@ def call_llm_model_node(state: ReactToolsCallingAgentState, config: RunnableConf
     return {"messages": [response]}
 
 
+async def pre_hook(skillberry_context: Dict, assistant_message: AssistantMessage) -> None:
+    """
+    pre-hook. Append assistant message to trajectory.
+    """
+    logging.info (f"pre_hook: {skillberry_context}, {assistant_message}")
+    tracjectory_manager.add_message(skillberry_context, assistant_message)
+
+
+async def post_hook(skillberry_context: Dict, tool_message: ToolMessage) -> None:
+    """
+    post-hook. Append tool result to trajectory.
+    """
+    logging.info(f"post_hook: {skillberry_context}, {tool_message}")
+    tracjectory_manager.add_message(skillberry_context, tool_message)
+
+
+def _extract_mcp_request(request: Any) -> AssistantMessage:
+    """
+    Fills up an assistant message out from the request.
+
+    Note: MCPToolCallRequest does not have tool_call_id notion so we
+    generate such ourselves.
+    """
+    logging.info(f"Enter _extract_mcp_request (request): {request}")
+    assert request.name, "Cannot extract tool name from MCP request"
+    assert request.args, "Cannot extract tool args from MCP request"
+
+    tool_name = request.name
+    args = request.args
+
+    tool_call_id = f"chatcmpl-tool-{uuid.uuid4().hex}"
+
+    assistant_message = AssistantMessage(
+        role="assistant",
+        tool_calls=[ToolCall
+            (
+                id=tool_call_id,
+                name=tool_name,
+                arguments=args
+            )
+        ]
+    )
+
+    logging.info(f"Exit _extract_mcp_request (assistant_message): {assistant_message}")
+    return assistant_message, tool_call_id
+
+
+def _extract_mcp_result(result: Any, too_call_id: str = "") -> ToolMessage:
+    """
+    Fills up a tool message (result) out from the result along with the passed
+    tool call id (the ID of the tool call message).
+
+    """
+    logging.info(f"Enter _extract_mcp_result (result): {result}")
+
+    is_error = result.isError
+    raw_text = result.content[0].text if result.content else ""
+
+    tool_message = ToolMessage(
+        # Note: in tau2 environment manager there is no id
+        id=too_call_id,
+        content=raw_text,
+        requestor="assistant",
+        role="tool",
+        error=is_error
+    )
+
+    logging.info(f"Exit _extract_mcp_result (tool_message): {tool_message}")
+    return tool_message 
+
+
+class CustomInterceptor:
+    def __init__(self, skillberry_context: Dict):
+        """
+        Initialize this with provided context.
+
+        Args:
+            skillberry_context (Dict): The context
+        """
+        self.skillberry_context = skillberry_context
+
+    async def __call__(
+        self,
+        request,
+        handler,
+    ):
+        """
+        This method is called whenever the middleware decides to call an MCP tool.
+        The method is responsible to properly correlate between call and result via ID.
+    
+        If tool call is of generated tool - the call and response are added to a local trajectory
+        store managed by the agent.
+
+        Args:
+            request (Any): Tool call request
+            handler (Any): Tool invocation entry point
+
+        Returns:
+            Any: Tool result
+        """
+        assistant_message, tool_call_id = _extract_mcp_request(request)
+        tool_name = assistant_message.tool_calls[0].name
+        if tool_name in GENERATED_TOOLS:
+            await pre_hook(self.skillberry_context, assistant_message)
+
+        # MCP adapter to perform the call (manages sessions & MCP URI internally)
+        result = await handler(request)
+
+        tool_message = _extract_mcp_result(result, tool_call_id)
+        if tool_name in GENERATED_TOOLS:
+            await post_hook(self.skillberry_context, tool_message)
+
+        # Return the original result
+        return result
+
+
 def mcp_tools(state: State):
     """
     Defines and compiles a LangGraph workflow for a react-style agent, connecting
@@ -66,9 +193,9 @@ def mcp_tools(state: State):
 
     Note: This method/node selects the proper MCP server (using context) for LLM completion.
 
-    If no MCP server is found out from the given environment ID (passed in skillberry_context),
-    a new MCP server is created and get loaded with Tau2 tools. The MCP server is removed once the
-    scenario completes (via "disconnect" control command).  
+    If no MCP server is found out from the given context a new MCP server is created and get loaded
+    with Tau2 tools. The MCP server is removed upon "disconnect" control command (once the scenario
+    completes).  
 
     """
     logging.info(f"=======>>> Node: mcp_tools. started <<<=======")
@@ -81,19 +208,23 @@ def mcp_tools(state: State):
     try:
         server = vmsm.get_server(skillberry_context)
     except: # not found
-        server = vmsm.add_server(skillberry_context, tools=TOOLS)
+        server = vmsm.add_server(skillberry_context, tools=TOOLS+GENERATED_TOOLS)
 
     port = server.port
     mcp_client_base_url = f"{extract_base_url(tools_service_base_url)}:{port}"
+
+    # 1. Define MCP client
     client = MultiServerMCPClient(
         {
             "tau2-tools": {
                 "url": f"{mcp_client_base_url}/sse",
                 "transport": "sse",
             }
-        }
+        },
+        tool_interceptors=[CustomInterceptor(skillberry_context)],
     )
 
+    # 2. Retrieve MCP tools
     tools = asyncio.run(client.get_tools())
 
     logging.info (f"MCP TOOLS -=-=-=-=-=-=-=-=-=- {tools} -=-=-=-=-=-=-=-=-=-=-=-=-=-")
@@ -127,6 +258,7 @@ def mcp_tools(state: State):
             ]
         }
 
+    # 3. Define the graph
     workflow = StateGraph(ReactToolsCallingAgentState)
     workflow.set_entry_point("llm")
 
@@ -164,6 +296,8 @@ def mcp_tools(state: State):
         logging.info(f"=====> Invoking the tools react agent")
         recursion_limit = _config.get("tools_react_agent__recursion_limit")
         llm_messages = original_chat_messages.to_messages()
+
+        # 4. Invoke the graph
         final_message = asyncio.run (trace_stream(graph.astream(
             {
                 "messages": llm_messages,
@@ -192,6 +326,8 @@ def mcp_tools(state: State):
     logger.info(
         f"=====> The agentic flow has finished executing the tools with parameters"
     )
+
+    # 5. Build final response
     try:
         ai_response = final_message.content
         logging.info (f"final AI response: {final_message.content} given from: {llm_messages}")

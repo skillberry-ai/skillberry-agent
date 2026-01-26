@@ -33,6 +33,10 @@ TOOLS = [
 ]
 
 
+GENERATED_TOOLS = [
+]
+
+
 @tool
 def fake_tool():
     """
