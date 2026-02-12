@@ -63,6 +63,9 @@ class LLMProvider:
         self.llm_model = llm_model
         self.llm_role = llm_role
         self.llm_timeout = llm_timeout
+        self.llm_url = ""
+
+        model_url = config.get("model_url")
 
         if self.llm_provider_type == LLMProviderType.RITS_OPENAI:
             if "RITS_API_KEY" not in os.environ:
@@ -78,20 +81,41 @@ class LLMProvider:
             self.rits_proxy_api_url = config.get("rits_proxy_api_url")
 
             if self.use_rits_proxy:
-                model_name = f"rits/{self.llm_model}".replace(".", "-").lower()
+                logger.info(f"using rits_proxy")
+                model_name = f"rits/{self.llm_model}"
+                logger.info(f"model_name = {model_name}")
+                self.llm_url = self.rits_proxy_api_url
                 self.llm = ChatOpenAI(
-                    model=f"{model_name}",
+                    model=model_name,
                     temperature=self.llm_temperature,
                     max_retries=2,
                     api_key=self.api_key,
                     base_url=self.rits_proxy_api_url,
                     request_timeout=self.llm_timeout,
                 )
+            elif model_url != "":
+                logger.info(f"using model_url = {model_url}")
+                logger.info(f"self.llm_model = {self.llm_model}")
+                self.llm_url = model_url
+                self.llm = ChatOpenAI(
+                    model=self.llm_model,
+                    temperature=self.llm_temperature,
+                    max_retries=2,
+                    api_key="/",
+                    base_url=model_url,
+                    default_headers={"RITS_API_KEY": self.api_key},
+                    request_timeout=self.llm_timeout,
+                )
             else:
+                # best effort to guess the url from the model name
+                logger.info(f"using best effort to guess model url")
                 model = self.llm_model.split("/")[1].replace(".", "-").lower()
                 url = f"{self.rits_api_url}/{model}/v1"
+                logger.info(f"model = {model}")
+                logger.info(f"url = {url}")
+                self.llm_url = url
                 self.llm = ChatOpenAI(
-                    model=f"{model}",
+                    model=self.llm_model,
                     temperature=self.llm_temperature,
                     max_retries=2,
                     api_key="/",
@@ -133,6 +157,7 @@ class LLMProvider:
             self.api_key = os.environ["WATSONX_APIKEY"]
             self.watsonx_project_id = os.environ["WATSONX_PROJECT_ID"]
             self.watsonx_url = os.environ["WATSONX_URL"]
+            self.llm_url = self.watsonx_url
 
             _llm = ChatWatsonx(
                 project_id=self.watsonx_project_id,
@@ -158,6 +183,7 @@ class LLMProvider:
                 f"==> Using rits proxy: {self.use_rits_proxy}\n"
                 f"==> rits API URL: {self.rits_api_url}\n"
                 f"==> rits proxy API URL: {self.rits_proxy_api_url}\n"
+                f"==> LLM URL: {self.llm_url}\n"
                 f"==> =================\n\n"
                 f"==> Using model: {self.llm_model}\n"
                 f"==> Coder Temperature: {self.llm_temperature}\n"
@@ -181,7 +207,8 @@ class LLMProvider:
             logger.info(f"Communication with the {self.llm_role} LLM established.")
         except Exception as e:
             logger.error(f"{self.llm_role} LLM is not working {e}")
-            return False
+            logger.error(f"llm_url = {self.llm_url}")
+            raise e
 
         return True
 

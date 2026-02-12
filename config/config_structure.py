@@ -30,13 +30,18 @@ CONFIG_STRUCTURE = {
     },
     "rits_proxy_api_url": {
         "type": "str",
-        "default": "http://9.148.245.32:4000",
+        "default": "http://skillberry-1.vpc.cloud9.ibm.com:4000",
         "label": "IBM rits proxy API URL (for proxy connection)",
     },
     "selected_model": {
         "type": "str",
         "default": "meta-llama/llama-4-maverick-17b-128e-instruct-fp8",
         "label": "LLM model to be used by the agent: ",
+    },
+    "model_url": {
+        "type": "str",
+        "default": "",
+        "label": "url of LLM model to be used by the agent (should be postfixed with /v1): ",
     },
     "temperature": {
         "type": "float",
