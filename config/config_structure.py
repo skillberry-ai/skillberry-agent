@@ -43,11 +43,6 @@ CONFIG_STRUCTURE = {
         "default": 0,
         "label": "The LLM model temperature: ",
     },
-    "max_suggested_functions": {
-        "type": "int",
-        "default": 3,
-        "label": "Maximum numbers of functions and tools to suggest: ",
-    },
     "tools_react_agent": {
         "type": "group",
         "label": "Tool calling React agent",
