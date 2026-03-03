@@ -1,35 +1,19 @@
-# blueberry-tools-agent
+# skillberry-agent
 
-An AI system designed to automate gradual reprogramming of workflows with both existing and generated tools in such a way that the proportion of using high-quality deterministic tools increases on the paths most susceptible to hallucinations
+An AI agent system that leverages existing tools to accomplish tasks efficiently and accurately.
 
 ## Features ✨
 
-- **Improve AI accuracy and correctness**: Uses LLM and tools in tundam to improve accuracy and correctness.
-- **Reduce AI systems TCO**: offloading computational processes to CPUs based deterministic tools.
-- **Continuous performance improvement as part of inferencing**: gradualy reprogram workflows by generation and usage of high-quality deterministic tools.
-- **Use case specific**: Provide value for repeated execution of workflows.
+- **Improve AI accuracy and correctness**: Uses LLM and tools in tandem to improve accuracy and correctness.
+- **Reduce AI systems TCO**: Offloading computational processes to CPU-based deterministic tools.
 - **Tools usage**: Enforce usage of deterministic tools as part of AI systems.
 - **Function calling**: Interface with tools-store-backends and search capabilities to efficiently use AI function calling.
-- **Tools maker**: Interface with LLM-as-a-coder componets to generate hige-quality deterministic tools.
 - **Operational API**: Expose LLM chat completion API allowing integration with any AI application, e.g., AI Agents
-- **Configuration API**: Expose API allowing managment of configurations such as: tools store backend, coder backend, LLM used.
+- **Configuration API**: Expose API allowing management of configurations such as: tools store backend, LLM used.
 
 ```mermaid
   graph TB
-    subgraph BTM[blueberry tools maker]
-        direction TB
-        style BTM1 fill:#f99,stroke:#333,stroke-width:2px
-        style BTM2 fill:#f99,stroke:#333,stroke-width:2px
-        style BTM3 fill:#f99,stroke:#333,stroke-width:2px
-        BTM1[Code Tool]
-        BTM2[Generalize Tool]
-        BTM3[Verify Tool]
-
-        BTM1 --> BTM2
-        BTM2 --> BTM3
-    end
-
-    subgraph BTS[blueberry tools service]
+    subgraph BTS[skillberry tools service]
         direction TB
         style BTS1 fill:#99f,stroke:#333,stroke-width:2px
         style BTS2 fill:#99f,stroke:#333,stroke-width:2px
@@ -42,13 +26,8 @@ An AI system designed to automate gradual reprogramming of workflows with both e
         BTS4[Execution]
         BTS5[Observability]
     end
-    %% click BTS1 "https://github.ibm.com/Blueberry/blueberry-tools-service"
-    %% click BTS2 "https://github.ibm.com/Blueberry/blueberry-tools-service"
-    %% click BTS3 "https://github.ibm.com/Blueberry/blueberry-tools-service"
-    %% click BTS4 "https://github.ibm.com/Blueberry/blueberry-tools-service"
-    %% click BTS5 "https://github.ibm.com/Blueberry/blueberry-tools-service"
 
-    subgraph BC[blueberry chatbot]
+    subgraph BC[skillberry chatbot]
         style BC1 fill:#f9f,stroke:#333,stroke-width:2px
         BC1["Assistant ChatBot<br>(demo)"]
     end
@@ -58,86 +37,88 @@ An AI system designed to automate gradual reprogramming of workflows with both e
         PA1["Production Applications<br> (e.g., GenAI LH)"]
     end
 
-    subgraph BTA[blueberry-tools-agent]
+    subgraph BTA[skillberry-agent]
         style BTA1 fill:#ff9,stroke:#333,stroke-width:4px
         style BTA2 fill:#ff9,stroke:#333,stroke-width:4px
         style BTA3 fill:#ff9,stroke:#333,stroke-width:4px
         style BTA4 fill:#ff9,stroke:#333,stroke-width:4px
-        style BTA5 fill:#ff9,stroke:#333,stroke-width:4px
-        style BTA6 fill:#ff9,stroke:#333,stroke-width:4px
         BTA1>🖹 LLM API]
         BTA2>🧠 Suggest Useful Tools]
         BTA3>🔎 Find Existing Tools]
-        BTA4>✍️ Code New Tools]
-        BTA5>✅ Verify Tools]
-        BTA6>🏃🏼‍♂️ Execute Tools]
+        BTA4>🏃🏼‍♂️ Execute Tools]
 
         BTA1 ==> BTA2
         BTA2 ==> BTA3
         BTA3 ==> BTA4
-        BTA4 ==> BTA5
-        BTA5 ==> BTA6
-        BTA6 ---> BTA1
+        BTA4 ---> BTA1
 
     end
 
     BC1 --> BTA1
     PA1 --> BTA1
     BTA3 -. search .-> BTS
-    BTA4 -. generate .-> BTM
-    %% BTA6 -. execute .-> BTS
+    BTA4 -. execute .-> BTS
 ```
     
 ## Quickstart 🚀
 
-### Start the Service
+❗Ensure that the [skillberry-store](https://github.ibm.com/skillberry/skillberry-store) is running.
+❗Make sure you are logged in to the ICR Docker registry. [details here](docs/container-reigistry.md)
 
+### Run the service with Docker or Podman 🐳
+
+
+```bash
+docker run --name skillberry-agent --env RITS_API_KEY -d -u 1000:1000 -v /tmp:/tmp --network=host skillberry-1.vpc.cloud9.ibm.com:8800/skillberry-dev/skillberry-agent:latest
+```
+
+Alternatively, you can use the make command, which does the same:
 ```bash
 make docker_run
 ```
 
-> Note: use `make help` for additional avaialbale operations
+>*Note:* Use `make help` to view a list of additional available operations.
 
-### Engage with the operational API (via OpenAPI) 📜
+### Interact with the service API (via OpenAPI) 📜
 
 Open a browser against `http://127.0.0.1:7000/docs`.
 
+### Interact with the service via Python SDK or CLI 🐍
+
+You can use either the Python SDK or a Command Line Interface (CLI) to interact with the service.
+For installation and usage instructions, refer to the [skillberry-agent-sdk](https://github.ibm.com/skillberry/skillberry-agent/client/python/).
+
 ### Prerequisites 🛠️
 
-- Use the `.env` file to define the `RITS_API_KEY` variable:
+- Export or use `.env` file to set `RITS_API_KEY` for accessing LLMs via RITS:
 
 ```bash
-RITS_API_KEY=********************************
+export RITS_API_KEY=********************************
 ```
 
-### Local Installation 📦
+- Alternatively, set `WATSONX_APIKEY`, `WATSONX_PROJECT_ID` and `WATSONX_URL` for accessing LLMs via WatsonX
+
+```bash
+export WATSONX_APIKEY=********************************
+export WATSONX_PROJECT_ID=********************************
+export WATSONX_URL=https://us-south.ml.cloud.ibm.com
+```
+
+### Local Setup and Running the Service 🧰
 
 ```bash
 cd ~
-git clone git@github.ibm.com:Blueberry/blueberry-tools-agent.git
-cd blueberry-tools-agent
-pip install -r requirements.txt
-```
-
-### Start the Service 🚀
-
-```bash
+git clone git@github.ibm.com:skillberry/skillberry-agent.git
+cd skillberry-agent
 make run
 ```
 
-### Engage with the configuration API 📜
+>*Note:* By default, SBA runs on host `0.0.0.0` and port `7000`, `7001`. To change, set the environment variables SBA_PORT, SBA_CONFIG_PORT and/or SBA_HOST
 
-UI Mode: Open a browser against `http://127.0.0.1:7001`.
-API Mode: use the API end points at `http://127.0.0.1:7001/api`. For example:
+### Interact with the configuration API 📜
 
-```bash
-curl -X PUT http://localhost:7001/api/config \
-     -H "Content-Type: application/json" \
-     -d '{"advanced__similarity_threshold": 0.8}'
+Open a browser against `http://127.0.0.1:7001`.
 
-curl localhost:7001/api/config
-```
+---
 
 ## 📚 Additional documentation can be found at [docs](docs).
-
-* Registry details can be found [here](docs/container-reigistry.md)
