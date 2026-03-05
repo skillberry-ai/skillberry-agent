@@ -25,13 +25,9 @@ api_server = FastAPI(
 logger = logging.getLogger(__name__)
 
 
-BTA_MCP = os.getenv("BTA_MCP", "").strip().lower() in ("1", "true", "yes", "on")
-if BTA_MCP:
-    from mcp_tools_agentic_graph import stream_graph_updates
-    logger.info("BTA MCP: on")
-else:
-    logger.info("BTA MCP: off")
-    from tools_agentic_graph import stream_graph_updates
+# Load MCP tools implementation
+from mcp_tools_agentic_graph import stream_graph_updates
+logger.info("Using MCP tools implementation")
 
 
 class ChatMessage(BaseModel):

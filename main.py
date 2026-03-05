@@ -23,14 +23,9 @@ from utils.tools_service_api import tools_service
 logger = logging.getLogger(__name__)
 
 
-# Load the proper graph based on MCP mode
-BTA_MCP = os.getenv("BTA_MCP", "").strip().lower() in ("1", "true", "yes", "on")
-if BTA_MCP:
-    from mcp_tools_agentic_graph import define_mcp_agentic_graph as define_tools_agentic_graph
-    logger.info("BTA MCP: on")
-else:
-    logger.info("BTA MCP: off")
-    from tools_agentic_graph import define_tools_agentic_graph
+# Load MCP tools implementation
+from mcp_tools_agentic_graph import define_mcp_agentic_graph as define_tools_agentic_graph
+logger.info("Using MCP tools implementation")
 
 
 debug = config.get("advanced__debug")

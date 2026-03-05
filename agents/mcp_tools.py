@@ -269,7 +269,35 @@ def mcp_tools(state: State):
 
     workflow.add_node("llm", call_llm_model_node)
     workflow.add_node("normalize", normalize_tool_node)
-    workflow.add_node(ToolNode(tools))
+    
+    # Wrap ToolNode to convert list-format content to string format for OpenAI compatibility
+    original_tool_node = ToolNode(tools)
+    
+    async def convert_tool_messages_node(state: ReactToolsCallingAgentState) -> Dict[str, Any]:
+        """
+        Convert LangGraph tool message format to OpenAI-compatible format.
+        LangGraph's ToolNode produces content as: [{'text': '...', 'type': 'text'}]
+        OpenAI API expects content as: "..."
+        """
+        # Call original ToolNode asynchronously
+        result = await original_tool_node.ainvoke(state)
+        
+        # Convert message content from list to string
+        messages = result.get("messages", [])
+        for msg in messages:
+            if hasattr(msg, 'content') and isinstance(msg.content, list):
+                # Extract text from list format
+                if msg.content and isinstance(msg.content[0], dict) and 'text' in msg.content[0]:
+                    msg.content = msg.content[0]['text']
+                elif msg.content:
+                    # Fallback: convert entire list to string
+                    msg.content = str(msg.content)
+                else:
+                    msg.content = ""
+        
+        return {"messages": messages}
+    
+    workflow.add_node("tools", convert_tool_messages_node)
 
     workflow.add_edge("llm", "normalize")
     workflow.add_edge("tools", "llm")
