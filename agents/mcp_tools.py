@@ -199,7 +199,8 @@ def _create_vmcp_server(skillberry_context: Dict, skill_uuid: Optional[str]) -> 
         ValueError: If server exists with different skill_uuid
     """
     from utils.skillberry_api import skillberry_api
-    
+
+    # TODO (weit) hard code
     server_name = "proxy-vmcp-server"
     logging.info(f"Creating VMCP server '{server_name}' with skill_uuid: {skill_uuid}")
     
