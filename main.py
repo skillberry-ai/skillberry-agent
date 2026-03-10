@@ -118,7 +118,7 @@ def main():
     define_tools_agentic_graph()
 
     # emit the git version
-    logging.info(f"blueberry-tools-agent version {__git_version__} is running.")
+    logging.info(f"skillberry-tools-agent version {__git_version__} is running.")
 
     # Run the API server
     uvicorn.run(api_server, host="0.0.0.0", port=7000)

@@ -21,6 +21,6 @@ RUN --mount=type=ssh \
 EXPOSE 7000 7001
 
 # Set the entrypoint command
-CMD sh -c 'echo "Starting blueberry tools-agent (version $BUILD_VERSION built on $BUILD_DATE)" && echo "" && python main.py'
+CMD sh -c 'echo "Starting skillberry tools-agent (version $BUILD_VERSION built on $BUILD_DATE)" && echo "" && python main.py'
 
 

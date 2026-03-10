@@ -385,7 +385,7 @@ def mcp_tools(state: State):
                     "role": "ai",
                     "content": json.dumps(
                         {
-                            "output": "Sorry, failed to answer using blueberry (tools binding)"
+                            "output": "Sorry, failed to answer using skillberry (tools binding)"
                         },
                         indent=4,
                     ),
@@ -451,7 +451,7 @@ def mcp_tools(state: State):
                 {
                     "role": "ai",
                     "content": json.dumps(
-                        f"Sorry, failed to answer using blueberry (invoke react agent)",
+                        f"Sorry, failed to answer using skillberry (invoke react agent)",
                         indent=4,
                     ),
                 }
@@ -479,7 +479,7 @@ def mcp_tools(state: State):
         output_content = f"<think>{session_thinking_log_as_str}</think>\n{ai_response}"
     except Exception as e:
         logging.error(f"Error while json.dumps: {e}")
-        output_content = "Sorry, failed to answer using blueberry (json.dumps)"
+        output_content = "Sorry, failed to answer using skillberry (json.dumps)"
 
     logger.info(f"output_content: {output_content}")
 

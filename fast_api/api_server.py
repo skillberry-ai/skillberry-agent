@@ -16,8 +16,8 @@ from agents.trajectory_manager import tracjectory_manager
 
 # Define the API
 api_server = FastAPI(
-    title="Blueberry Tools Agent",
-    description="Blueberry Tools Agent API",
+    title="Skillberry Tools Agent",
+    description="Skillberry Tools Agent API",
     version=__git_version__,
 )
 
@@ -110,10 +110,10 @@ def api_chat_completion(chat_request: ChatRequest, request: Request):
         logging.info(f"The response to the user prompt is: {final_response}")
 
         response = {
-            "id": "blueberry",
+            "id": "skillberry",
             "object": "chat.completion",
             "created": int(time.time()),
-            "model": "blueberry",
+            "model": "skillberry",
             "choices": [
                 {
                     "index": 0,
@@ -137,7 +137,7 @@ def api_chat_completion(chat_request: ChatRequest, request: Request):
                     "rejected_prediction_tokens": 0,
                 },
             },
-            "system_fingerprint": "blueberry",
+            "system_fingerprint": "skillberry",
         }
 
         return response
