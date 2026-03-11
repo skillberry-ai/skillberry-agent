@@ -46,6 +46,32 @@ execute_tools_with_parameters_chat_prompt_template = ChatPromptTemplate.from_mes
 )
 
 
+def normalize_message_content(messages):
+    """Convert Anthropic-style content to OpenAI-compatible format"""
+    normalized = []
+    for msg in messages:
+        if hasattr(msg, 'content') and isinstance(msg.content, list):
+            # Extract text from [{'text': '...', 'type': 'text'}] format
+            text_parts = []
+            for item in msg.content:
+                if isinstance(item, dict) and item.get('type') == 'text':
+                    text_parts.append(item.get('text', ''))
+            # Create new message with string content
+            if hasattr(msg, 'model_copy'):
+                # Pydantic v2
+                normalized_msg = msg.model_copy(update={'content': ' '.join(text_parts)})
+            elif hasattr(msg, 'copy'):
+                # Pydantic v1
+                normalized_msg = msg.copy(update={'content': ' '.join(text_parts)})
+            else:
+                # Fallback: create new message of same type
+                normalized_msg = type(msg)(content=' '.join(text_parts), **{k: v for k, v in msg.__dict__.items() if k != 'content'})
+            normalized.append(normalized_msg)
+        else:
+            normalized.append(msg)
+    return normalized
+
+
 def call_llm_model_node(state: ReactToolsCallingAgentState, config: RunnableConfig) -> Dict:
     """
     Calls LLM model passing it all messages. The response message is appended to messages
@@ -64,7 +90,10 @@ def call_llm_model_node(state: ReactToolsCallingAgentState, config: RunnableConf
     logging.info(f"=====> Calling LLM to response (call_llm_model_node).")
     logging.info(f"Latest message is: {last_message}")
 
-    response = state["_llm"].invoke(messages, config)
+    # Normalize message content to OpenAI format before sending to LLM
+    # This creates a temporary copy for the LLM invocation without modifying state
+    normalized_messages = normalize_message_content(messages)
+    response = state["_llm"].invoke(normalized_messages, config)
     return {"messages": [response]}
 
 
