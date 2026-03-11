@@ -43,8 +43,8 @@ class TrajectoryManager:
         if it exists.
 
         """
-        logger.info(f"remove_trajectory: {env_id}")
         env_id = skillberry_context["env_id"]
+        logger.info(f"remove_trajectory: {env_id}")
         if env_id in self.trajectories:
             logger.info(f"deleting trajectory: {env_id}")
             del self.trajectories[env_id]

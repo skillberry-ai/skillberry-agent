@@ -4,6 +4,7 @@ import logging
 import uuid
 from typing import Any, Dict, Optional
 
+import requests
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.runnables import RunnableConfig
 from langgraph.graph import StateGraph
@@ -16,6 +17,7 @@ from config.config_ui import config as _config
 from data_model.messages import AssistantMessage, ToolCall, ToolMessage
 from data_model.virtual_mcp_server import VirtualMcpServer
 from llm.common import current_llm
+from utils.skillberry_api import skillberry_api
 
 
 logger = logging.getLogger(__name__)
@@ -275,6 +277,87 @@ def _create_vmcp_server(skillberry_context: Optional[Dict], skill_uuid: Optional
     return server
 
 
+def _resolve_skill_uuid(
+    skill_name: Optional[str],
+    skill_uuid: Optional[str],
+    enable_skill_search: bool
+) -> Optional[str]:
+    """
+    Resolve skill UUID based on provided parameters.
+    
+    Args:
+        skill_name: Name of the skill to resolve
+        skill_uuid: Direct UUID specification
+        enable_skill_search: Whether to enable runtime skill search
+        
+    Returns:
+        Resolved skill UUID or None
+        
+    Raises:
+        NotImplementedError: If enable_skill_search is True (not yet implemented)
+    """
+
+    # Determine mode and resolve skill_uuid accordingly
+    if enable_skill_search:
+        # Runtime mode: Not currently implemented in mcp_tools
+        logging.error("[RUNTIME MODE] Skill search enabled - VMCP creation on-demand is not currently implemented in mcp_tools()")
+        raise NotImplementedError("Runtime skill search mode (enable_skill_search=True) is not currently implemented in mcp_tools()")
+            
+    elif skill_uuid:
+        # Build-time mode: Direct UUID specification
+        logging.info(f"[BUILD-TIME] Using explicit skill UUID: {skill_uuid}")
+        return skill_uuid
+        
+    elif skill_name:
+        # Build-time mode: Get skill by name
+        logging.info(f"[BUILD-TIME] Getting skill by name: '{skill_name}'")
+        try:
+            skill_data = skillberry_api.get_skill(skill_name)
+            if skill_data:
+                resolved_skill_uuid = skill_data.get("uuid")
+                if resolved_skill_uuid:
+                    logging.info(f"[BUILD-TIME] Resolved skill '{skill_name}' to UUID: {resolved_skill_uuid}")
+                    return resolved_skill_uuid
+                else:
+                    logging.warning(f"Skill '{skill_name}' found but has no UUID, creating VMCP without skill")
+                    return None
+            else:
+                logging.warning(f"No skill data returned for skill name: '{skill_name}', creating VMCP without skill")
+                return None
+        except requests.exceptions.HTTPError as e:
+            logging.warning(f"HTTP error while getting skill '{skill_name}': {e}. Creating VMCP without skill")
+            return None
+        except requests.exceptions.RequestException as e:
+            logging.warning(f"Request error while getting skill '{skill_name}': {e}. Creating VMCP without skill")
+            return None
+        except Exception as e:
+            logging.warning(f"Unexpected error while getting skill '{skill_name}': {e}. Creating VMCP without skill")
+            return None
+            
+    else:
+        # Fallback mode: Use domain-based search (backward compatibility)
+        logging.warning("[DEFAULT MODE] No skill specified, using domain-based search")
+        search_term = "airline"  # Default search term
+        logging.info(f"Searching for skill with search term: '{search_term}'")
+        try:
+            resolved_skill_uuid = skillberry_api.find_skill_uuid_by_search(search_term)
+            if resolved_skill_uuid:
+                logging.info(f"Found skill UUID: {resolved_skill_uuid} for search term: '{search_term}'")
+                return resolved_skill_uuid
+            else:
+                logging.warning(f"No skill found for search term: '{search_term}', creating VMCP without skill")
+                return None
+        except requests.exceptions.HTTPError as e:
+            logging.warning(f"HTTP error while searching for skill with term '{search_term}': {e}. Creating VMCP without skill")
+            return None
+        except requests.exceptions.RequestException as e:
+            logging.warning(f"Request error while searching for skill with term '{search_term}': {e}. Creating VMCP without skill")
+            return None
+        except Exception as e:
+            logging.warning(f"Unexpected error while searching for skill with term '{search_term}': {e}. Creating VMCP without skill")
+            return None
+
+
 def mcp_tools(state: State):
     """
     Defines and compiles a LangGraph workflow for a react-style agent, connecting
@@ -296,41 +379,22 @@ def mcp_tools(state: State):
 
     chat_history = state["chat_history"]
     skillberry_context = state["skillberry_context"]
-    skill_name = state.get("skill_name", "flight_reservation_management")
+    skill_name = state.get("skill_name")
     skill_uuid = state.get("skill_uuid")
     enable_skill_search = state.get("enable_skill_search", False)
 
-    # Determine which skill_uuid to use
-    resolved_skill_uuid = None
-    
-    if skill_uuid:
-        # Direct UUID specification
-        logging.info(f"Using explicit skill UUID: {skill_uuid}")
-        resolved_skill_uuid = skill_uuid
-    elif skill_name:
-        # Resolve skill name to UUID
-        logging.info(f"Resolving skill name '{skill_name}' to UUID")
-        from utils.skillberry_api import skillberry_api
-        skill_data = skillberry_api.get_skill(skill_name)
-        resolved_skill_uuid = skill_data.get("uuid")
-        if not resolved_skill_uuid:
-            raise ValueError(f"Skill '{skill_name}' not found")
-        logging.info(f"Resolved skill '{skill_name}' to UUID: {resolved_skill_uuid}")
-    elif enable_skill_search:
-        # Runtime skill search mode
-        logging.info("Runtime skill search enabled - using domain-based search")
-        search_term = "airline"  # TODO: Extract from messages
-        from utils.skillberry_api import skillberry_api
-        resolved_skill_uuid = skillberry_api.find_skill_uuid_by_search(search_term)
-        if resolved_skill_uuid:
-            logging.info(f"Found skill UUID: {resolved_skill_uuid} for search term: '{search_term}'")
-        else:
-            logging.warning(f"No skill found for search term: '{search_term}'")
-    else:
-        # No skill specification provided
-        raise NotImplementedError(
-            "Fallback logic not implemented. Please provide either skill_name, skill_uuid, or enable_skill_search=True"
-        )
+    # Resolve skill UUID using helper method
+    try:
+        resolved_skill_uuid = _resolve_skill_uuid(skill_name, skill_uuid, enable_skill_search)
+    except NotImplementedError as e:
+        return {
+            "messages": [
+                {
+                    "role": "ai",
+                    "content": str(e),
+                }
+            ]
+        }
 
     # Get or create singleton server with resolved skill_uuid
     logging.info(f"Getting/creating singleton MCP server with skill_uuid: {resolved_skill_uuid}")

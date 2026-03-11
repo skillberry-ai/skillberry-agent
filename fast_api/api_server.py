@@ -157,9 +157,13 @@ def trajectory(request: Request):
 
     skillberry_context = unflatten_keys(headers).get(SKILLBERRY_CONTEXT.lower())
     logging.info(f"@@@@@@@@@@@@@@@@")
-    logging.info(f"skillberery_context: {skillberry_context}")            
+    logging.info(f"skillberery_context: {skillberry_context}")
     logging.info(f"@@@@@@@@@@@@@@@@")
 
+    # Handle missing context
+    if skillberry_context is None:
+        return {"trajectory": [], "warning": "No skillberry context provided"}
+    
     trajectory = tracjectory_manager.get_trajectory(skillberry_context)
     return {"trajectory": trajectory}
 
