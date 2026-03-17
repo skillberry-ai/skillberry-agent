@@ -11,24 +11,17 @@ requires-python = ">=3.11"
 dependencies = [
     "fastapi>=0.115.12",
     "uvicorn>=0.16.0",
-    "pydantic>=2.11.3",
-    "langgraph>=0.4.3",
-    "langchain>=0.3.25",
-    "langchain_core>=0.3.59",
     "langchain-community",
     "langchain_openai>=0.3.16",
     "langchain_ibm>=0.3.14",
-    "langchain-mcp-adapters>=0.2.1",
     "python-dotenv",
     "httpx",
-    "requests>=2.32.3",
     "pytest>=8.3.4",
     "pytest-asyncio",
     "colorlog>=6.9.0",
     "dash>=2.9.3",
     "Flask>=3.1.0",
     "ipython>=8.12.3",
-    "typing_extensions>=4.13.2",
 ]
 
 [project.optional-dependencies]
@@ -39,4 +32,4 @@ dev = [
 ]
 
 [tool.setuptools]
-packages = ["agents", "config", "data_model", "fast_api", "llm", "tools", "utils"]
+packages = ["agents", "config", "fast_api", "llm", "tools", "utils"]

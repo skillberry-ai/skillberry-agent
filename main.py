@@ -23,8 +23,7 @@ from utils.skillberry_api import skillberry_api
 logger = logging.getLogger(__name__)
 
 
-# Load MCP tools implementation
-from mcp_tools_agentic_graph import define_mcp_agentic_graph as define_tools_agentic_graph
+# MCP tools implementation loaded directly in api_server
 logger.info("Using MCP tools implementation")
 
 
@@ -113,9 +112,6 @@ def main():
         logger.error("Can't communicate with the Skillberry API, please check network, VPN, access keys etc.")
         logging.error("Only the configuration UI is working now, allowing to change the configuration and restart.")
         sleep(100000)
-
-    # define the agentic graph
-    define_tools_agentic_graph()
 
     # emit the git version
     logging.info(f"skillberry-tools-agent version {__git_version__} is running.")

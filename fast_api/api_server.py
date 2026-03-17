@@ -11,9 +11,6 @@ from langchain_core.messages import BaseMessage
 
 from fast_api.git_version import __git_version__
 from utils.utils import SKILLBERRY_CONTEXT, unflatten_keys
-from agents.trajectory_manager import tracjectory_manager
-
-
 # Define the API
 api_server = FastAPI(
     title="Skillberry Tools Agent",
@@ -25,7 +22,7 @@ logger = logging.getLogger(__name__)
 
 
 # Load MCP tools implementation
-from mcp_tools_agentic_graph import stream_graph_updates
+from agents.mcp_tools import mcp_tools, trajectory, disconnect
 logger.info("Using MCP tools implementation")
 
 
@@ -88,23 +85,16 @@ def api_chat_completion(chat_request: ChatRequest, request: Request):
             for message in chat_request.messages:
                 chat_history.append(message.to_base_message())
 
-        response = stream_graph_updates(
+        final_response = mcp_tools(
             chat_history=chat_history,
             skillberry_context=skillberry_context,
         )
-        if response is None:
-            logging.error("stream_graph_updates returned None")
+        
+        if final_response is None:
+            logging.error("mcp_tools returned None")
             raise HTTPException(
                 status_code=500,
-                detail="Internal server error: stream_graph_updates returned None",
-            )
-        try:
-            final_response = list(response)[0]["messages"][-1]["content"]
-        except (IndexError, TypeError) as e:
-            logging.error(f"Error processing response from stream_graph_updates: {e}")
-            raise HTTPException(
-                status_code=500,
-                detail="Error processing response from stream_graph_updates",
+                detail="Internal server error: mcp_tools returned None",
             )
 
         logging.info(f"The response to the user prompt is: {final_response}")
@@ -149,7 +139,7 @@ def api_chat_completion(chat_request: ChatRequest, request: Request):
 
 
 @api_server.get("/trajectory")
-def trajectory(request: Request):
+def get_trajectory(request: Request):
     headers = request.headers
     logging.info("!!!!!!!!!!!!!!!!!")
     logging.info(f"headers: {headers}")
@@ -164,12 +154,12 @@ def trajectory(request: Request):
     if skillberry_context is None:
         return {"trajectory": [], "warning": "No skillberry context provided"}
     
-    trajectory = tracjectory_manager.get_trajectory(skillberry_context)
-    return {"trajectory": trajectory}
+    trajectory_result = trajectory(skillberry_context)
+    return {"trajectory": trajectory_result}
 
 
 @api_server.post("/disconnect")
-def disconnect(request: Request):
+def api_disconnect(request: Request):
     headers = request.headers
     logging.info("!!!!!!!!!!!!!!!!!")
     logging.info(f"headers: {headers}")
@@ -177,21 +167,17 @@ def disconnect(request: Request):
 
     skillberry_context = unflatten_keys(headers).get(SKILLBERRY_CONTEXT.lower())
     logging.info(f"@@@@@@@@@@@@@@@@")
-    logging.info(f"skillberery_context: {skillberry_context}")            
+    logging.info(f"skillberery_context: {skillberry_context}")
     logging.info(f"@@@@@@@@@@@@@@@@")
 
+    # Delegate to mcp_tools disconnect function
     # ignore errors, also in case BTA is in none-mcp mode
     try:
-        from utils.skillberry_api import skillberry_api
-        server_name = "proxy-vmcp-server"
-        logging.info(f"Removing VMCP server '{server_name}'")
-        skillberry_api.remove_vmcp_server(name=server_name)
-    except:
-        pass
-    try:
-        tracjectory_manager.remove_trajectory(skillberry_context)
-    except:
-        pass
+        disconnect(skillberry_context)
+    except Exception as e:
+        logging.warning(f"Error during disconnect: {e}")
+    
+    return {"status": "disconnected"}
 
 
 # Health check endpoint

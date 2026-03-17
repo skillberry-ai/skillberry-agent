@@ -15,7 +15,7 @@ COPY . .
 RUN --mount=type=ssh \
     mkdir -p /root/.ssh && \
     ssh-keyscan github.ibm.com >> /root/.ssh/known_hosts && \
-    pip install --no-cache-dir -r requirements.txt
+    pip install --no-cache-dir -e .
 
 # Expose a port
 EXPOSE 7000 7001

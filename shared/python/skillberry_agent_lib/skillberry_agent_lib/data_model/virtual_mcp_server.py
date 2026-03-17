@@ -1,6 +1,6 @@
 import json
 
-from typing import Optional, List, Any
+from typing import List
 from pydantic import BaseModel, Field
 
 
@@ -11,8 +11,8 @@ class VirtualMcpServer(BaseModel):
     """
     name: str = Field(description="The name of the virtual MCP server.")
     description: str = Field(description="A description of the virtual MCP server.")
-    port: int = Field(description="The port on which the virtual MCP server is running.")
-    tools: List[str] = Field(default_factory=list, description="A list of tool UUIDs registered with the virtual MCP server.")
+    port: int = Field(description="he port on which the virtual MCP server is running.")
+    tools: List[str] = Field(description="A list of tool UUIDs registered with the virtual MCP server.")
 
     def __str__(self) -> str:
         lines = [
