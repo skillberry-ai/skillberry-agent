@@ -57,7 +57,7 @@ def mcp_tools(chat_history: list, skillberry_context: dict,
 
     Parameters:
         chat_history: List of chat messages
-        skillberry_context: Context dictionary containing env_id, task_id, etc.
+        skillberry_context: Context dictionary containing the context
         skill_name: Optional skill name to resolve to UUID
         skill_uuid: Optional skill UUID (highest priority)
         skill_search_term: Optional search term to find skill (lowest priority)
@@ -71,15 +71,10 @@ def mcp_tools(chat_history: list, skillberry_context: dict,
     logging.info(f"=======>>> mcp_tools started <<<=======")
     thinking_log = ""
 
-    # Create or get VMCP server with unified skill resolution
-    # The create_vmcp_server function now handles skill resolution internally
+    # 1. Create or get VMCP server with unified skill resolution
     logging.info(f"Getting/creating MCP server with skill_uuid={skill_uuid}, skill_name={skill_name}, skill_search_term={skill_search_term}")
 
     try:
-        # Create the vmcpserver and provide it with the context.
-        # This context is then forwarded to the tools execution environment (the handler() function).
-        # The environment ID (env_id) is propagated throughout the tools' runtime to ensure that all
-        # operations are performed on the correct environment instance.
         vmcp_data = create_vmcp_server(
             skillberry_context,
             skill_uuid=skill_uuid,
@@ -91,12 +86,10 @@ def mcp_tools(chat_history: list, skillberry_context: dict,
         logging.error(error_msg)
         return error_msg
     
-    # Create VirtualMcpServer instance from the returned data
     server = VirtualMcpServer(**vmcp_data)
-
     port = server.port
     
-    # Get tools from the MCP server with interceptor
+    # 2. Get tools from the MCP server with interceptor
     tools = get_mcp_tools(
         port=port,
         server_name=server.name,
@@ -104,6 +97,8 @@ def mcp_tools(chat_history: list, skillberry_context: dict,
     )
 
     logging.info(f"MCP TOOLS -=-=-=-=-=-=-=-=-=- {tools} -=-=-=-=-=-=-=-=-=-=-=-=-=-")
+    
+    # 3. Bind tools to LLM
     try:
         if not tools:
             thinking_log += (
@@ -122,6 +117,7 @@ def mcp_tools(chat_history: list, skillberry_context: dict,
         logging.error(f"Error while binding tools: {e}")
         return "Sorry, failed to answer using skillberry (tools binding)"
 
+    # 4. Create and compile the React workflow
     workflow = create_react_tools_workflow(
         tools=tools,
         enable_tool_logging=False,
@@ -143,16 +139,17 @@ def mcp_tools(chat_history: list, skillberry_context: dict,
             _final_message = message
         return _final_message
 
+    # 5. Prepare chat messages
     original_chat_messages = execute_tools_with_parameters_chat_prompt_template.invoke(
         chat_history
     )
 
+    # 6. Invoke the graph and stream results
     try:
         logging.info(f"=====> Invoking the tools react agent")
         recursion_limit = _config.get("tools_react_agent__recursion_limit")
         llm_messages = original_chat_messages.to_messages()
 
-        # 4. Invoke the graph
         final_message = asyncio.run (trace_stream(graph.astream(
             {
                 "messages": llm_messages,
@@ -172,7 +169,7 @@ def mcp_tools(chat_history: list, skillberry_context: dict,
         f"=====> The agentic flow has finished executing the tools with parameters"
     )
 
-    # 5. Build final response
+    # 7. Build final response
     try:
         ai_response = final_message.content
         logging.info(f"final AI response: {final_message.content} given from: {llm_messages}")
@@ -192,10 +189,9 @@ def mcp_tools(chat_history: list, skillberry_context: dict,
 def trajectory(skillberry_context: dict) -> list:
     """
     Get the trajectory of tool calls and results tracked by the interceptor.
-    
     Parameters:
-        skillberry_context: The skillberry context dictionary containing env_id, task_id, etc.
-    
+        skillberry_context: Context dictionary containing the context
+        
     Returns:
         List of messages (AssistantMessage and ToolMessage) representing the trajectory
     """
@@ -216,32 +212,23 @@ def disconnect(skillberry_context: dict):
     Disconnect from the attached virtual mcp server and clean up trajectory.
     
     Parameters:
-        skillberry_context: The skillberry context dictionary containing env_id, task_id, etc.
+        skillberry_context: Context dictionary containing the context
     """
-    env_id = skillberry_context.get("env_id", "default")
-    server_name = f"vmcp-server-{env_id}"
-    logger.info(f"Disconnecting from vmcp_server: '{server_name}' for env_id: '{env_id}'")
+    logger.info(f"Disconnecting from vmcp_server for context: {skillberry_context}")
 
-    # Remove from local registry
+    # Remove VMCP server (handles both local registry and Tools Service)
     try:
-        removed = remove_vmcp_server(env_id)
+        removed = remove_vmcp_server(skillberry_context)
         if removed:
-            logger.info(f"Removed VMCP server for env_id '{env_id}' from local registry")
+            logger.info(f"Successfully removed VMCP server for context: {skillberry_context}")
         else:
-            logger.warning(f"No VMCP server found in registry for env_id '{env_id}'")
+            logger.warning(f"VMCP server not found in local registry for context: {skillberry_context} (may have been removed from Tools Service)")
     except Exception as e:
-        logger.warning(f"Failed to remove VMCP server from registry: {e}")
-    
-    # Remove from Skillberry Tools Service
-    try:
-        skillberry_api.remove_vmcp_server(name=server_name)
-        logger.info(f"Removed VMCP server '{server_name}' from Skillberry Tools Service")
-    except Exception as e:
-        logger.warning(f"Failed to remove VMCP server from Tools Service: {e}")
+        logger.warning(f"Failed to remove VMCP server: {e}")
     
     # Clean up trajectory
     try:
         trajectory_manager.remove_trajectory(skillberry_context)
-        logger.info(f"Cleaned up trajectory for env_id: {env_id}")
+        logger.info(f"Cleaned up trajectory for context: {skillberry_context}")
     except Exception as e:
         logger.warning(f"Failed to clean up trajectory: {e}")

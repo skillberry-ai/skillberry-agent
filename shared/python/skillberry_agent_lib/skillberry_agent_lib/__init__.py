@@ -37,7 +37,6 @@ from skillberry_agent_lib.utils import (
 from skillberry_agent_lib.vmcp_server_manager import (
     create_vmcp_server,
     remove_vmcp_server,
-    get_vmcp_server,
     list_vmcp_servers,
     clear_vmcp_servers,
 )
@@ -78,7 +77,6 @@ __all__ = [
     # VMCP Server Manager
     "create_vmcp_server",
     "remove_vmcp_server",
-    "get_vmcp_server",
     "list_vmcp_servers",
     "clear_vmcp_servers",
     

@@ -144,39 +144,46 @@ def create_vmcp_server(
         raise ValueError(f"VMCP server creation failed: {e}") from e
 
 
-def get_vmcp_server(env_id: str) -> Optional[Dict]:
-    """Retrieve existing VMCP server for given env_id.
+def remove_vmcp_server(skillberry_context: Dict) -> bool:
+    """Remove VMCP server from both local registry and Skillberry Tools Service.
     
+    This function performs a complete cleanup:
+    1. Removes from local registry
+    2. Removes from Skillberry Tools Service
     Args:
-        env_id: Environment ID to look up
+        skillberry_context: Context dictionary containing the context
+        
         
     Returns:
-        VMCP server data dict or None if not found
-    """
-    with _registry_lock:
-        server = _vmcp_server_registry.get(env_id)
-        if server and server.get("status") != "creating":
-            return server
-        return None
-
-
-def remove_vmcp_server(env_id: str) -> bool:
-    """Remove VMCP server from registry for given env_id.
-    
-    Note: This only removes from local registry, not from Skillberry Tools Service.
-    
-    Args:
-        env_id: Environment ID to remove
+        True if server was removed from registry, False if not found in registry
         
-    Returns:
-        True if server was removed, False if not found
+    Note:
+        Even if the server is not in the local registry, this function will still
+        attempt to remove it from the Skillberry Tools Service.
     """
+    from skillberry_agent_lib.skillberry_api import skillberry_api
+    
+    env_id = skillberry_context.get("env_id", "default")
+    server_name = f"vmcp-server-{env_id}"
+    registry_removed = False
+    
+    # Remove from local registry
     with _registry_lock:
         if env_id in _vmcp_server_registry:
             del _vmcp_server_registry[env_id]
-            logging.info(f"Removed VMCP server for env_id '{env_id}' from registry")
-            return True
-        return False
+            logging.info(f"Removed VMCP server for env_id '{env_id}' from local registry")
+            registry_removed = True
+        else:
+            logging.warning(f"No VMCP server found in local registry for env_id '{env_id}'")
+    
+    # Remove from Skillberry Tools Service
+    try:
+        skillberry_api.remove_vmcp_server(name=server_name)
+        logging.info(f"Removed VMCP server '{server_name}' from Skillberry Tools Service")
+    except Exception as e:
+        logging.warning(f"Failed to remove VMCP server '{server_name}' from Tools Service: {e}")
+    
+    return registry_removed
 
 
 def list_vmcp_servers() -> Dict[str, Dict]:
