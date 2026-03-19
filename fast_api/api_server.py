@@ -46,6 +46,10 @@ class ChatRequest(BaseModel):
     max_tokens: int = Field(
         256, gt=0, description="Maximum number of tokens to generate"
     )
+    # Skill resolution parameters (optional)
+    skill_uuid: str | None = Field(None, description="Direct skill UUID (highest priority)")
+    skill_name: str | None = Field(None, description="Skill name to resolve to UUID")
+    skill_search_term: str | None = Field(None, description="Search term to find skill (lowest priority)")
 
 
 @api_server.post("/prompt", tags=["chat"])
@@ -88,6 +92,9 @@ def api_chat_completion(chat_request: ChatRequest, request: Request):
         final_response = mcp_tools(
             chat_history=chat_history,
             skillberry_context=skillberry_context,
+            skill_uuid=chat_request.skill_uuid,
+            skill_name=chat_request.skill_name,
+            skill_search_term=chat_request.skill_search_term or "airline",  # Use default if not provided
         )
         
         if final_response is None:

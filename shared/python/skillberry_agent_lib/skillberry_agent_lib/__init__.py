@@ -34,7 +34,13 @@ from skillberry_agent_lib.utils import (
     extract_base_url,
 )
 
-from skillberry_agent_lib.vmcp_server_manager import resolve_skill_uuid
+from skillberry_agent_lib.vmcp_server_manager import (
+    create_vmcp_server,
+    remove_vmcp_server,
+    get_vmcp_server,
+    list_vmcp_servers,
+    clear_vmcp_servers,
+)
 
 from skillberry_agent_lib.mcp_interceptor import (
     create_tool_interceptor,
@@ -69,8 +75,12 @@ __all__ = [
     "flatten_keys",
     "extract_base_url",
     
-    # VMC Server Manager
-    "resolve_skill_uuid",
+    # VMCP Server Manager
+    "create_vmcp_server",
+    "remove_vmcp_server",
+    "get_vmcp_server",
+    "list_vmcp_servers",
+    "clear_vmcp_servers",
     
     # MCP Interceptor
     "create_tool_interceptor",
