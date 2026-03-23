@@ -2,6 +2,7 @@
 import asyncio
 import json
 import logging
+import os
 
 # Third-party imports
 from langchain_core.prompts import ChatPromptTemplate
@@ -16,8 +17,9 @@ from skillberry_agent_lib.langgraph_nodes import (
 )
 from skillberry_agent_lib.mcp_interceptor import get_mcp_tools
 from skillberry_agent_lib.skillberry_api import skillberry_api
+from skillberry_agent_lib.skill_manager import resolve_skill_uuid
 from skillberry_agent_lib.trajectory_manager import trajectory_manager
-from skillberry_agent_lib.vmcp_server_manager import create_vmcp_server, remove_vmcp_server
+from skillberry_agent_lib.vmcp_server_manager import get_or_create_vmcp_server, remove_vmcp_server
 
 
 
@@ -47,39 +49,63 @@ execute_tools_with_parameters_chat_prompt_template = ChatPromptTemplate.from_mes
 )
 
 
-def mcp_tools(chat_history: list, skillberry_context: dict,
-              skill_name=None, skill_uuid=None, skill_search_term=None):
+def execute_agentic_graph(chat_history: list, skillberry_context: dict):
     """
-    Defines and compiles a LangGraph workflow for a react-style agent, connecting
-    LLM and tool nodes with conditional logic to control execution flow.
-
-    Note: This method selects the proper MCP server (using context) for LLM completion.
-
+    Execute agentic workflow with MCP tools.
+    
+    Environment Variables:
+        SKILL_UUID: Direct skill UUID (optional, highest priority)
+        SKILL_NAME: Skill name to resolve (optional, medium priority)
+    
+    This function orchestrates the complete agentic workflow:
+    1. Resolves skill configuration from environment variables
+    2. Creates or retrieves a VMCP server with the resolved skill
+    3. Obtains MCP tools from the server
+    4. Binds tools to the LLM
+    5. Executes a React-style agent workflow
+    6. Returns the final AI response
+    
+    Skill Resolution Strategy:
+    - SKILL_UUID env var: Direct skill UUID (highest priority)
+    - SKILL_NAME env var: Skill name to resolve via API (medium priority)
+    - Chat history: Extract search term for skill discovery (lowest priority, fallback)
+    
+    The VMCP server is managed per env_id and reused across calls within the same context.
+    Use the disconnect() function to clean up the server when the session ends.
+    
     Parameters:
-        chat_history: List of chat messages
-        skillberry_context: Context dictionary containing the context
-        skill_name: Optional skill name to resolve to UUID
-        skill_uuid: Optional skill UUID (highest priority)
-        skill_search_term: Optional search term to find skill (lowest priority)
+        chat_history: List of chat messages providing conversation context
+        skillberry_context: Context dictionary containing env_id and other metadata
     
     Returns:
-        str: The final AI response content
-    
-    The MCP server is removed upon "disconnect" control command (once the scenario completes).
-
+        str: The final AI response content, including thinking log and answer
+        
+    Raises:
+        ValueError: If VMCP server creation fails
     """
-    logging.info(f"=======>>> mcp_tools started <<<=======")
+    logging.info(f"=======>>> execute_agentic_graph started <<<=======")
     thinking_log = ""
 
-    # 1. Create or get VMCP server with unified skill resolution
-    logging.info(f"Getting/creating MCP server with skill_uuid={skill_uuid}, skill_name={skill_name}, skill_search_term={skill_search_term}")
-
+    # 1. Read skill configuration from environment variables
+    env_skill_uuid = os.environ.get('SKILL_UUID')
+    env_skill_name = os.environ.get('SKILL_NAME')
+    
+    logging.info(f"Environment: SKILL_UUID={env_skill_uuid}, SKILL_NAME={env_skill_name}")
+    
+    # 2. Resolve skill UUID using multiple strategies
+    resolved_skill_uuid = resolve_skill_uuid(
+        skill_uuid=env_skill_uuid,
+        skill_name=env_skill_name,
+        chat_history=chat_history
+    )
+    
+    logging.info(f"Resolved skill UUID: {resolved_skill_uuid}")
+    
+    # 3. Create or get VMCP server with resolved skill
     try:
-        vmcp_data = create_vmcp_server(
+        vmcp_data = get_or_create_vmcp_server(
             skillberry_context,
-            skill_uuid=skill_uuid,
-            skill_name=skill_name,
-            skill_search_term=skill_search_term
+            skill_uuid=resolved_skill_uuid
         )
     except ValueError as e:
         error_msg = f"Failed to create VMCP server: {e}"
@@ -89,7 +115,7 @@ def mcp_tools(chat_history: list, skillberry_context: dict,
     server = VirtualMcpServer(**vmcp_data)
     port = server.port
     
-    # 2. Get tools from the MCP server with interceptor
+    # 4. Get tools from the MCP server with interceptor
     tools = get_mcp_tools(
         port=port,
         server_name=server.name,
@@ -98,7 +124,7 @@ def mcp_tools(chat_history: list, skillberry_context: dict,
 
     logging.info(f"MCP TOOLS -=-=-=-=-=-=-=-=-=- {tools} -=-=-=-=-=-=-=-=-=-=-=-=-=-")
     
-    # 3. Bind tools to LLM
+    # 5. Bind tools to LLM
     try:
         if not tools:
             thinking_log += (
@@ -117,7 +143,7 @@ def mcp_tools(chat_history: list, skillberry_context: dict,
         logging.error(f"Error while binding tools: {e}")
         return "Sorry, failed to answer using skillberry (tools binding)"
 
-    # 4. Create and compile the React workflow
+    # 6. Create and compile the React workflow
     workflow = create_react_tools_workflow(
         tools=tools,
         enable_tool_logging=False,
@@ -144,7 +170,7 @@ def mcp_tools(chat_history: list, skillberry_context: dict,
         chat_history
     )
 
-    # 6. Invoke the graph and stream results
+    # 7. Invoke the graph and stream results
     try:
         logging.info(f"=====> Invoking the tools react agent")
         recursion_limit = _config.get("tools_react_agent__recursion_limit")
@@ -169,7 +195,7 @@ def mcp_tools(chat_history: list, skillberry_context: dict,
         f"=====> The agentic flow has finished executing the tools with parameters"
     )
 
-    # 7. Build final response
+    # 8. Build final response
     try:
         ai_response = final_message.content
         logging.info(f"final AI response: {final_message.content} given from: {llm_messages}")
@@ -181,7 +207,7 @@ def mcp_tools(chat_history: list, skillberry_context: dict,
         output_content = "Sorry, failed to answer using skillberry (response building)"
 
     logger.info(f"output_content: {output_content}")
-    logging.info(f"=======>>> mcp_tools ended <<<=======")
+    logging.info(f"=======>>> execute_agentic_graph ended <<<=======")
     
     return output_content
 

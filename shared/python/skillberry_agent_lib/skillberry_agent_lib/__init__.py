@@ -28,6 +28,8 @@ from skillberry_agent_lib.trajectory_manager import TrajectoryManager
 
 from skillberry_agent_lib.skillberry_api import SkillberryAPI
 
+from skillberry_agent_lib.skill_manager import resolve_skill_uuid
+
 from skillberry_agent_lib.utils import (
     SKILLBERRY_CONTEXT,
     flatten_keys,
@@ -35,7 +37,7 @@ from skillberry_agent_lib.utils import (
 )
 
 from skillberry_agent_lib.vmcp_server_manager import (
-    create_vmcp_server,
+    get_or_create_vmcp_server,
     remove_vmcp_server,
     clear_vmcp_servers,
 )
@@ -68,13 +70,16 @@ __all__ = [
     # API Client
     "SkillberryAPI",
     
+    # Skill Manager
+    "resolve_skill_uuid",
+    
     # Utils
     "SKILLBERRY_CONTEXT",
     "flatten_keys",
     "extract_base_url",
     
     # VMCP Server Manager
-    "create_vmcp_server",
+    "get_or_create_vmcp_server",
     "remove_vmcp_server",
     "clear_vmcp_servers",
     

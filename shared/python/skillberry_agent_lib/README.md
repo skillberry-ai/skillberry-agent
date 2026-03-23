@@ -20,7 +20,8 @@ poetry add skillberry-agent-lib
 from skillberry_agent_lib import (
     TrajectoryManager,
     SkillberryAPI,
-    create_vmcp_server,
+    get_or_create_vmcp_server,
+    resolve_skill_uuid,
     SystemMessage,
     UserMessage,
 )
@@ -67,10 +68,11 @@ The Skillberry Agent Library provides essential building blocks for creating int
 
 Follow these 7 steps to build a production-ready agent:
 
-### Step 1: Create or get VMCP server with unified skill resolution
+### Step 1: Resolve skill and create VMCP server
 
 ```python
-from skillberry_agent_lib import create_vmcp_server
+import os
+from skillberry_agent_lib import resolve_skill_uuid, get_or_create_vmcp_server
 from skillberry_agent_lib.data_model.virtual_mcp_server import VirtualMcpServer
 
 # Define your agent's context
@@ -79,12 +81,23 @@ agent_context = {
     "task_id": "task-123",
 }
 
-# Create VMCP server (handles skill resolution internally)
-vmcp_data = create_vmcp_server(
+# Set skill configuration via environment variables (recommended)
+os.environ['SKILL_NAME'] = 'weather-tool'
+# Or use: os.environ['SKILL_UUID'] = 'your-skill-uuid'
+
+# Skill resolution happens automatically in execute_agentic_graph()
+# But you can also resolve manually if needed:
+chat_history = []  # Your chat messages
+resolved_uuid = resolve_skill_uuid(
+    skill_uuid=os.environ.get('SKILL_UUID'),
+    skill_name=os.environ.get('SKILL_NAME'),
+    chat_history=chat_history
+)
+
+# Create VMCP server with resolved skill UUID
+vmcp_data = get_or_create_vmcp_server(
     agent_context,
-    skill_uuid=None,  # Direct UUID (highest priority)
-    skill_name="weather-tool",  # Skill name (medium priority)
-    skill_search_term=None,  # Search term (lowest priority)
+    skill_uuid=resolved_uuid,
 )
 
 # Create VirtualMcpServer instance
@@ -209,41 +222,43 @@ trajectory_manager.remove_trajectory(agent_context)
 print("\n✨ Agent execution complete!")
 ```
 
-# Run the agent
-
-```python
-llm = ChatOpenAI(model="gpt-4")
-result = agent_app.invoke({
-    "messages": [HumanMessage(content="Help me analyze this data")],
-    "llm": llm,
-})
-
-print(f"Agent response: {result['messages'][-1].content}")
-```
-
-### Step 6: Retrieve and Analyze Trajectory
-
-```python
-# Get the full trajectory for analysis
-trajectory = trajectory_manager.get_trajectory(agent_context)
-
-print(f"\nAgent Trajectory ({len(trajectory)} steps):")
-for msg in trajectory:
-    print(f"Turn {msg.turn_idx}: {msg.role}")
-    if hasattr(msg, 'tool_calls') and msg.tool_calls:
-        for call in msg.tool_calls:
-            print(f"  Tool: {call.name} - Args: {call.arguments}")
-    if hasattr(msg, 'content') and msg.content:
-        print(f"  Content: {msg.content[:100]}...")
-
-# Clean up when done
-remove_vmcp_server(agent_context)  # Removes from both registry and Tools Service
-trajectory_manager.remove_trajectory(agent_context)
-```
-
 ## 🧩 Core Components
 
-### 1. Message Models
+### 1. Skill Manager
+
+Centralized skill resolution with multiple strategies:
+
+```python
+from skillberry_agent_lib import resolve_skill_uuid
+import os
+
+# Set environment variables for skill configuration
+os.environ['SKILL_UUID'] = 'abc-123-def-456'  # Highest priority
+# Or: os.environ['SKILL_NAME'] = 'weather-tool'  # Medium priority
+
+# Resolve skill UUID using multiple strategies
+chat_history = []  # Your chat messages
+resolved_uuid = resolve_skill_uuid(
+    skill_uuid=os.environ.get('SKILL_UUID'),
+    skill_name=os.environ.get('SKILL_NAME'),
+    chat_history=chat_history
+)
+
+print(f"Resolved skill UUID: {resolved_uuid}")
+```
+
+**Resolution Strategy (Priority Order):**
+1. **SKILL_UUID** env var - Direct UUID (highest priority)
+2. **SKILL_NAME** env var - Resolves name to UUID via API (medium priority)
+3. **Chat History** - Extracts search term and finds matching skill (lowest priority)
+
+**Key Features:**
+- Environment variable-based configuration
+- Three-tier fallback strategy
+- Automatic skill discovery from conversation context
+- Graceful degradation when resolution fails
+
+### 2. Message Models
 
 Structured message types for agent communication:
 
@@ -288,7 +303,7 @@ tool_result = ToolMessage(
 )
 ```
 
-### 2. Trajectory Manager
+### 3. Trajectory Manager
 
 Thread-safe trajectory tracking for agent reasoning:
 
@@ -315,7 +330,7 @@ manager.remove_trajectory(context)
 - Automatic trajectory creation
 - Copy-on-read to prevent external modification
 
-### 3. Skillberry API Client
+### 4. Skillberry API Client
 
 Interface to the Skillberry Tools Store:
 
@@ -340,33 +355,36 @@ for skill in results:
     print(f"UUID: {skill['uuid']}")
 ```
 
-### 4. VMCP Server Manager
+### 5. VMCP Server Manager
 
-Manage Virtual MCP servers with unified skill resolution:
+Manage Virtual MCP servers with pre-resolved skill UUIDs:
 
 ```python
+import os
 from skillberry_agent_lib import (
-    create_vmcp_server,
+    resolve_skill_uuid,
+    get_or_create_vmcp_server,
     remove_vmcp_server,
     clear_vmcp_servers,
 )
 
 context = {"env_id": "agent-001"}
 
-# Create server (multiple resolution methods)
-server1 = create_vmcp_server(
-    skillberry_context=context,
-    skill_uuid="uuid-123",  # Direct UUID (highest priority)
+# Set skill via environment variable
+os.environ['SKILL_UUID'] = 'uuid-123'
+
+# Resolve skill UUID
+chat_history = []
+resolved_uuid = resolve_skill_uuid(
+    skill_uuid=os.environ.get('SKILL_UUID'),
+    skill_name=os.environ.get('SKILL_NAME'),
+    chat_history=chat_history
 )
 
-server2 = create_vmcp_server(
+# Create server with resolved UUID
+server = get_or_create_vmcp_server(
     skillberry_context=context,
-    skill_name="weather-tool",  # By name (medium priority)
-)
-
-server3 = create_vmcp_server(
-    skillberry_context=context,
-    skill_search_term="weather",  # By search (lowest priority)
+    skill_uuid=resolved_uuid,
 )
 
 # Remove specific server (removes from both local registry and Tools Service)
@@ -386,7 +404,7 @@ clear_vmcp_servers()
 - `remove_vmcp_server(context)` removes from both local registry AND Skillberry Tools Service
 - `clear_vmcp_servers()` only clears local registry (use for testing/cleanup)
 
-### 5. MCP Interceptor
+### 6. MCP Interceptor
 
 Intercept and track MCP tool calls:
 
@@ -413,7 +431,7 @@ tools = get_mcp_tools(
 - Automatically adds to trajectory
 - Generates unique tool_call_id
 
-### 6. LangGraph Integration
+### 7. LangGraph Integration
 
 Pre-built components for LangGraph agents:
 
@@ -445,10 +463,12 @@ Here's a full example of building an agent using the MCP tools method pattern:
 ```python
 import asyncio
 import logging
+import os
 from skillberry_agent_lib import (
     TrajectoryManager,
     SkillberryAPI,
-    create_vmcp_server,
+    resolve_skill_uuid,
+    get_or_create_vmcp_server,
     get_mcp_tools,
 )
 from skillberry_agent_lib.data_model.virtual_mcp_server import VirtualMcpServer
@@ -474,11 +494,23 @@ chat_prompt = ChatPromptTemplate.from_messages([
     ("human", "{input}"),
 ])
 
-# 4. Create VMCP server with unified skill resolution
+# 4. Configure skill via environment variable
+os.environ['SKILL_NAME'] = 'weather-tool'
+# Or use: os.environ['SKILL_UUID'] = 'your-skill-uuid'
+
+# 5. Resolve skill UUID
+chat_history_for_resolution = []  # Empty for initial resolution
+resolved_skill_uuid = resolve_skill_uuid(
+    skill_uuid=os.environ.get('SKILL_UUID'),
+    skill_name=os.environ.get('SKILL_NAME'),
+    chat_history=chat_history_for_resolution
+)
+
+# 6. Create VMCP server with resolved skill
 try:
-    vmcp_data = create_vmcp_server(
+    vmcp_data = get_or_create_vmcp_server(
         skillberry_context=agent_context,
-        skill_search_term="weather forecast",  # Can also use skill_uuid or skill_name
+        skill_uuid=resolved_skill_uuid,
     )
     server = VirtualMcpServer(**vmcp_data)
     print(f"Created VMCP server: {server.name} on port {server.port} with tools: {server.tools}")
@@ -486,7 +518,7 @@ except ValueError as e:
     print(f"Failed to create VMCP server: {e}")
     exit(1)
 
-# 5. Get MCP tools with automatic trajectory tracking
+# 7. Get MCP tools with automatic trajectory tracking
 tools = get_mcp_tools(
     port=server.port,
     server_name=server.name,
@@ -495,7 +527,7 @@ tools = get_mcp_tools(
 
 print(f"Loaded {len(tools)} MCP tools with trajectory tracking")
 
-# 6. Bind tools to LLM
+# 8. Bind tools to LLM
 if tools:
     llm_with_tools = llm.bind_tools(tools=tools, tool_choice="auto")
     print("Tools bound to LLM")
@@ -503,21 +535,21 @@ else:
     llm_with_tools = llm
     print("No tools available, using LLM without tools")
 
-# 7. Create React workflow using the library's helper
+# 9. Create React workflow using the library's helper
 workflow = create_react_tools_workflow(
     tools=tools,
     enable_tool_logging=False,
     normalize_anthropic_to_openai=True,
 )
 
-# 8. Compile the graph
+# 10. Compile the graph
 graph = workflow.compile()
 
-# 9. Prepare messages
+# 11. Prepare messages
 chat_messages = chat_prompt.invoke({"input": "What's the weather in San Francisco?"})
 llm_messages = chat_messages.to_messages()
 
-# 10. Run the agent with streaming
+# 12. Run the agent with streaming
 async def run_agent():
     """Run the agent and stream results"""
     final_message = None
@@ -542,7 +574,7 @@ try:
 except Exception as e:
     print(f"❌ Error running agent: {e}")
 
-# 11. Review trajectory
+# 13. Review trajectory
 trajectory = trajectory_manager.get_trajectory(agent_context)
 print(f"\n📊 Agent Trajectory ({len(trajectory)} steps):")
 for i, msg in enumerate(trajectory, 1):
@@ -555,7 +587,7 @@ for i, msg in enumerate(trajectory, 1):
         content_preview = msg.content[:100] + "..." if len(msg.content) > 100 else msg.content
         print(f"    Content: {content_preview}")
 
-# 12. Cleanup - Remove VMCP server and trajectory
+# 14. Cleanup - Remove VMCP server and trajectory
 from skillberry_agent_lib import remove_vmcp_server
 
 try:
@@ -574,9 +606,6 @@ except Exception as e:
     print(f"⚠️ Cleanup warning: {e}")
 
 print("\n✨ Agent execution complete!")
-
-# 9. Cleanup
-trajectory_manager.remove_trajectory(agent_context)
 ```
 
 ## 🔧 Advanced Topics

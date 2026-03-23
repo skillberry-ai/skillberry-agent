@@ -128,65 +128,6 @@ class SkillberryAPI:
         except Exception as e:
             logger.error(f"Error finding skill UUID for search term '{search_term}': {e}")
             return None
-    def get_skill_uuid(self, skill_uuid=None, skill_name=None, skill_search_term=None) -> str:
-        """
-        Returns a skill UUID based on the given parameters.
-        
-        Args:
-            skill_uuid: Direct UUID specification
-            skill_name: Skill name to resolve to UUID
-            skill_search_term: Search term to find skill and get its UUID
-            
-        Returns:
-            str: The skill UUID
-            
-        Raises:
-            ValueError: If no parameters provided or skill not found
-            Exception: Any failure occurred during execution
-            
-        Flow:
-            - If skill_uuid: return skill_uuid
-            - Elif skill_name: return UUID of skill matching name
-            - Else: return UUID of skill matching search term
-        """
-        # Priority 1: UUID - return directly
-        if skill_uuid:
-            logger.info(f"[get_skill_uuid] Using provided UUID: {skill_uuid}")
-            return skill_uuid
-        
-        # Priority 2: Name - get skill by name and extract UUID
-        elif skill_name:
-            logger.info(f"[get_skill_uuid] Resolving UUID from name: {skill_name}")
-            try:
-                skill_data = self.get_skill(skill_name)
-                skill_uuid = skill_data.get("uuid")
-                if not skill_uuid:
-                    raise ValueError(f"Skill '{skill_name}' found but has no UUID")
-                logger.info(f"[get_skill_uuid] Resolved '{skill_name}' to UUID: {skill_uuid}")
-                return skill_uuid
-            except Exception as e:
-                logger.error(f"[get_skill_uuid] Failed to get skill by name '{skill_name}': {e}")
-                raise
-        
-        # Priority 3: Search term - search and extract UUID
-        elif skill_search_term:
-            logger.info(f"[get_skill_uuid] Resolving UUID from search term: {skill_search_term}")
-            try:
-                skill_uuid = self.find_skill_uuid_by_search(skill_search_term)
-                if not skill_uuid:
-                    raise ValueError(f"No skill found matching search term: '{skill_search_term}'")
-                logger.info(f"[get_skill_uuid] Resolved search term '{skill_search_term}' to UUID: {skill_uuid}")
-                return skill_uuid
-            except Exception as e:
-                logger.error(f"[get_skill_uuid] Failed to find skill by search term '{skill_search_term}': {e}")
-                raise
-        
-        # No parameters provided
-        else:
-            error_msg = "No skill parameters provided (skill_uuid, skill_name, or skill_search_term required)"
-            logger.error(f"[get_skill_uuid] {error_msg}")
-            raise ValueError(error_msg)
-
 
     def add_vmcp_server(self, name: str, description: str, skill_uuid: Optional[str] = None,
                         skillberry_context: Optional[Dict] = None):

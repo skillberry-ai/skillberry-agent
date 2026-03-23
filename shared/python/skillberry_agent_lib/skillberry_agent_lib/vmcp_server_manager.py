@@ -50,28 +50,24 @@ def _wait_for_server_creation(env_id: str, max_wait: float = 30.0, poll_interval
 
 
 
-def create_vmcp_server(
+def get_or_create_vmcp_server(
     skillberry_context: Optional[Dict],
-    skill_uuid: Optional[str] = None,
-    skill_name: Optional[str] = None,
-    skill_search_term: Optional[str] = None
+    skill_uuid: Optional[str] = None
 ):
-    """Create or retrieve VMCP server with unified skill resolution.
+    """Create or retrieve VMCP server with direct skill UUID.
     
     This function manages VMCP servers per env_id with thread-safe registry.
-    It uses the unified get_skill_uuid() method for skill resolution.
+    It accepts a pre-resolved skill UUID directly.
 
     Args:
         skillberry_context: The context for the MCP server (can be None)
-        skill_uuid: Direct UUID specification (highest priority)
-        skill_name: Skill name to resolve to UUID (medium priority)
-        skill_search_term: Search term to find skill (lowest priority)
+        skill_uuid: Pre-resolved skill UUID (optional)
         
     Returns:
         VirtualMcpServer data dict with keys: name, description, port, tools
         
     Raises:
-        ValueError: If skill resolution fails or server creation fails
+        ValueError: If server creation fails
     """
     # Handle None skillberry_context
     if skillberry_context is None:
@@ -99,27 +95,11 @@ def create_vmcp_server(
     # If we placed the placeholder, we're responsible for creating the server
     # Perform network calls OUTSIDE the lock to prevent deadlock
     try:
-        # Step 1: Resolve skill UUID using unified method
-        resolved_skill_uuid = None
-        if skill_uuid or skill_name or skill_search_term:
-            try:
-                resolved_skill_uuid = skillberry_api.get_skill_uuid(
-                    skill_uuid=skill_uuid,
-                    skill_name=skill_name,
-                    skill_search_term=skill_search_term
-                )
-                logging.info(f"Resolved skill UUID: {resolved_skill_uuid}")
-            except ValueError as e:
-                logging.warning(f"Skill resolution failed: {e}. Creating VMCP without skill")
-                resolved_skill_uuid = None
-        else:
-            logging.info("No skill parameters provided, creating VMCP without skill")
-        
-        # Step 2: Generate server name based on env_id
+        # Step 1: Generate server name based on env_id
         server_name = f"vmcp-server-{env_id}"
-        logging.info(f"Creating VMCP server '{server_name}' with skill_uuid: {resolved_skill_uuid}")
+        logging.info(f"Creating VMCP server '{server_name}' with skill_uuid: {skill_uuid}")
         
-        # Step 3: Check if server already exists in Skillberry Tools Service
+        # Step 2: Check if server already exists in Skillberry Tools Service
         vmcp_server_info = None
         try:
             vmcp_server_info = skillberry_api.get_vmcp_server_details(name=server_name)
@@ -127,22 +107,22 @@ def create_vmcp_server(
             
             # Validate skill UUID match if both are specified
             existing_skill_uuid = vmcp_server_info.get("skill_uuid")
-            if existing_skill_uuid and resolved_skill_uuid and existing_skill_uuid != resolved_skill_uuid:
+            if existing_skill_uuid and skill_uuid and existing_skill_uuid != skill_uuid:
                 logging.warning(
                     f"VMCP server '{server_name}' exists with skill_uuid '{existing_skill_uuid}', "
-                    f"but requested skill_uuid is '{resolved_skill_uuid}'. "
+                    f"but requested skill_uuid is '{skill_uuid}'. "
                     f"Reusing existing server (skill mismatch detected)."
                 )
         except Exception as e:
             logging.debug(f"No existing VMCP server found (or error): {e}")
             logging.info(f"Will create new VMCP server '{server_name}'")
         
-        # Step 4: Create server if it doesn't exist
+        # Step 3: Create server if it doesn't exist
         if vmcp_server_info is None:
             vmcp_response = skillberry_api.add_vmcp_server(
                 name=server_name,
                 description=f"VMCP Server for env_id: {env_id}",
-                skill_uuid=resolved_skill_uuid,
+                skill_uuid=skill_uuid,
                 skillberry_context=skillberry_context
             )
             logging.info(f"VMCP server created with response: {vmcp_response}")
@@ -151,7 +131,7 @@ def create_vmcp_server(
             vmcp_server_info = skillberry_api.get_vmcp_server_details(name=server_name)
             logging.info(f"Retrieved VMCP server info: {vmcp_server_info}")
         
-        # Step 5: Extract necessary fields for VirtualMcpServer
+        # Step 4: Extract necessary fields for VirtualMcpServer
         vmcp_data = {
             "name": vmcp_server_info.get("name") or server_name,
             "description": vmcp_server_info.get("description") or f"VMCP Server for {env_id}",
@@ -162,7 +142,7 @@ def create_vmcp_server(
         }
         logging.info(f"Constructed VMCP data: {vmcp_data}")
         
-        # Step 6: Update registry with actual server data
+        # Step 5: Update registry with actual server data
         with _registry_lock:
             _vmcp_server_registry[env_id] = vmcp_data
             logging.info(f"Registered VMCP server for env_id '{env_id}' on port {vmcp_data.get('port')}")

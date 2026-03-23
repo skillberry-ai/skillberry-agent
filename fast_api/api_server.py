@@ -21,9 +21,9 @@ api_server = FastAPI(
 logger = logging.getLogger(__name__)
 
 
-# Load MCP tools implementation
-from agents.mcp_tools import mcp_tools, trajectory, disconnect
-logger.info("Using MCP tools implementation")
+# Load agentic graph implementation
+from agents.agentic_graph import execute_agentic_graph, trajectory, disconnect
+logger.info("Using agentic graph implementation")
 
 
 class ChatMessage(BaseModel):
@@ -46,10 +46,8 @@ class ChatRequest(BaseModel):
     max_tokens: int = Field(
         256, gt=0, description="Maximum number of tokens to generate"
     )
-    # Skill resolution parameters (optional)
-    skill_uuid: str | None = Field(None, description="Direct skill UUID (highest priority)")
-    skill_name: str | None = Field(None, description="Skill name to resolve to UUID")
-    skill_search_term: str | None = Field(None, description="Search term to find skill (lowest priority)")
+    # Skill parameters removed - now configured via environment variables
+    # Skill resolution uses: SKILL_UUID, SKILL_NAME env vars, or chat history search
 
 
 @api_server.post("/prompt", tags=["chat"])
@@ -89,19 +87,16 @@ def api_chat_completion(chat_request: ChatRequest, request: Request):
             for message in chat_request.messages:
                 chat_history.append(message.to_base_message())
 
-        final_response = mcp_tools(
+        final_response = execute_agentic_graph(
             chat_history=chat_history,
-            skillberry_context=skillberry_context,
-            skill_uuid=chat_request.skill_uuid,
-            skill_name=chat_request.skill_name,
-            skill_search_term=chat_request.skill_search_term or "airline",  # Use default if not provided
+            skillberry_context=skillberry_context
         )
         
         if final_response is None:
-            logging.error("mcp_tools returned None")
+            logging.error("execute_agentic_graph returned None")
             raise HTTPException(
                 status_code=500,
-                detail="Internal server error: mcp_tools returned None",
+                detail="Internal server error: execute_agentic_graph returned None",
             )
 
         logging.info(f"The response to the user prompt is: {final_response}")
@@ -177,7 +172,7 @@ def api_disconnect(request: Request):
     logging.info(f"skillberery_context: {skillberry_context}")
     logging.info(f"@@@@@@@@@@@@@@@@")
 
-    # Delegate to mcp_tools disconnect function
+    # Delegate to agentic_graph disconnect function
     # ignore errors, also in case BTA is in none-mcp mode
     try:
         disconnect(skillberry_context)
