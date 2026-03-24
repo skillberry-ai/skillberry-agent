@@ -12,7 +12,7 @@ def client():
 def test_api_prompt_endpoint(client):
     """Test the /prompt endpoint."""
     response = client.post("/prompt", params={"user_prompt": "test prompt"})
-    assert response.status_code == 500
+    assert response.status_code == 200
 
 
 def test_health_endpoint(client):
