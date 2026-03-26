@@ -51,7 +51,7 @@ def _wait_for_server_creation(env_id: str, max_wait: float = 30.0, poll_interval
 
 
 def get_or_create_vmcp_server(
-    skillberry_context: Optional[Dict],
+    skillberry_context: Dict,
     skill_uuid: Optional[str] = None
 ):
     """Create or retrieve VMCP server with direct skill UUID.
@@ -60,21 +60,27 @@ def get_or_create_vmcp_server(
     It accepts a pre-resolved skill UUID directly.
 
     Args:
-        skillberry_context: The context for the MCP server (can be None)
+        skillberry_context: The context for the MCP server (must not be None)
         skill_uuid: Pre-resolved skill UUID (optional)
         
     Returns:
         VirtualMcpServer data dict with keys: name, description, port, tools
         
     Raises:
-        ValueError: If server creation fails
+        ValueError: If skillberry_context is None or missing env_id, or if server creation fails
     """
-    # Handle None skillberry_context
+    # Validate context is not None
     if skillberry_context is None:
-        logging.warning("skillberry_context is None, using default context")
-        skillberry_context = {"env_id": "default"}
+        raise ValueError("skillberry_context cannot be None")
     
-    env_id = skillberry_context.get("env_id", "default")
+    # Validate env_id exists
+    if "env_id" not in skillberry_context:
+        raise ValueError(
+            f"skillberry_context must contain 'env_id' key. "
+            f"Received: {skillberry_context}"
+        )
+    
+    env_id = skillberry_context["env_id"]
     
     # Check if server already exists for this env_id
     with _registry_lock:
@@ -166,12 +172,15 @@ def remove_vmcp_server(skillberry_context: Dict) -> bool:
     This function performs a complete cleanup:
     1. Removes from local registry
     2. Removes from Skillberry Tools Service
+    
     Args:
-        skillberry_context: Context dictionary containing the context
-        
+        skillberry_context: Context dictionary containing the context (must not be None)
         
     Returns:
         True if server was removed from registry, False if not found in registry
+        
+    Raises:
+        ValueError: If skillberry_context is None or missing env_id
         
     Note:
         Even if the server is not in the local registry, this function will still
@@ -179,7 +188,18 @@ def remove_vmcp_server(skillberry_context: Dict) -> bool:
     """
     from skillberry_agent_lib.skillberry_api import skillberry_api
     
-    env_id = skillberry_context.get("env_id", "default")
+    # Validate context is not None
+    if skillberry_context is None:
+        raise ValueError("skillberry_context cannot be None")
+    
+    # Validate env_id exists
+    if "env_id" not in skillberry_context:
+        raise ValueError(
+            f"skillberry_context must contain 'env_id' key. "
+            f"Received: {skillberry_context}"
+        )
+    
+    env_id = skillberry_context["env_id"]
     server_name = f"vmcp-server-{env_id}"
     registry_removed = False
     

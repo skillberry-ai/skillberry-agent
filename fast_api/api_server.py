@@ -72,8 +72,17 @@ def api_chat_completion(chat_request: ChatRequest, request: Request):
     logging.info("!!!!!!!!!!!!!!!!!")
 
     skillberry_context = unflatten_keys(headers).get(SKILLBERRY_CONTEXT.lower())
+    
+    # Validate and provide default context if missing
+    if skillberry_context is None:
+        logging.warning("No Skillberry context headers provided, using default context")
+        skillberry_context = {"env_id": "default"}
+    elif "env_id" not in skillberry_context:
+        logging.warning("Skillberry context missing env_id, adding default")
+        skillberry_context["env_id"] = "default"
+    
     logging.info(f"@@@@@@@@@@@@@@@@")
-    logging.info(f"skillberery_context: {skillberry_context}")            
+    logging.info(f"skillberery_context: {skillberry_context}")
     logging.info(f"@@@@@@@@@@@@@@@@")
     # TODO: END common skillberry library
 
@@ -144,13 +153,17 @@ def get_trajectory(request: Request):
     logging.info("!!!!!!!!!!!!!!!!!")
 
     skillberry_context = unflatten_keys(headers).get(SKILLBERRY_CONTEXT.lower())
+    
+    # Validate and provide default context if missing
+    if skillberry_context is None:
+        logging.warning("No Skillberry context headers for /trajectory, using default")
+        skillberry_context = {"env_id": "default"}
+    elif "env_id" not in skillberry_context:
+        skillberry_context["env_id"] = "default"
+    
     logging.info(f"@@@@@@@@@@@@@@@@")
     logging.info(f"skillberery_context: {skillberry_context}")
     logging.info(f"@@@@@@@@@@@@@@@@")
-
-    # Handle missing context
-    if skillberry_context is None:
-        return {"trajectory": [], "warning": "No skillberry context provided"}
     
     trajectory_result = trajectory(skillberry_context)
     return {"trajectory": trajectory_result}
@@ -164,6 +177,14 @@ def api_disconnect(request: Request):
     logging.info("!!!!!!!!!!!!!!!!!")
 
     skillberry_context = unflatten_keys(headers).get(SKILLBERRY_CONTEXT.lower())
+    
+    # Validate and provide default context if missing
+    if skillberry_context is None:
+        logging.warning("No Skillberry context headers for /disconnect, using default")
+        skillberry_context = {"env_id": "default"}
+    elif "env_id" not in skillberry_context:
+        skillberry_context["env_id"] = "default"
+    
     logging.info(f"@@@@@@@@@@@@@@@@")
     logging.info(f"skillberery_context: {skillberry_context}")
     logging.info(f"@@@@@@@@@@@@@@@@")

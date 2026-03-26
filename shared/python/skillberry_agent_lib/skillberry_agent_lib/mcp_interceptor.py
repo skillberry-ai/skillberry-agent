@@ -65,17 +65,29 @@ def _extract_mcp_result(result: Any, too_call_id: str = "") -> ToolMessage:
 async def pre_hook(skillberry_context: Dict, assistant_message: AssistantMessage) -> None:
     """
     pre-hook. Append assistant message to trajectory.
+    
+    Note: Catches ValueError to prevent trajectory tracking from breaking tool execution.
     """
-    logging.info (f"pre_hook: {skillberry_context}, {assistant_message}")
-    trajectory_manager.add_message(skillberry_context, assistant_message)
+    logging.info(f"pre_hook: {skillberry_context}, {assistant_message}")
+    try:
+        trajectory_manager.add_message(skillberry_context, assistant_message)
+    except ValueError as e:
+        logging.error(f"pre_hook failed to add message to trajectory: {e}")
+        # Don't re-raise - trajectory tracking should not break tool execution
 
 
 async def post_hook(skillberry_context: Dict, tool_message: ToolMessage) -> None:
     """
     post-hook. Append tool result to trajectory.
+    
+    Note: Catches ValueError to prevent trajectory tracking from breaking tool execution.
     """
     logging.info(f"post_hook: {skillberry_context}, {tool_message}")
-    trajectory_manager.add_message(skillberry_context, tool_message)
+    try:
+        trajectory_manager.add_message(skillberry_context, tool_message)
+    except ValueError as e:
+        logging.error(f"post_hook failed to add message to trajectory: {e}")
+        # Don't re-raise - trajectory tracking should not break tool execution
 
 
 class CustomInterceptor:
@@ -129,11 +141,18 @@ def create_tool_interceptor(skillberry_context: Dict):
     """Factory function to create a CustomInterceptor with the given context.
     
     Args:
-        skillberry_context: The context to pass to the interceptor
+        skillberry_context: The context to pass to the interceptor (must not be None)
         
     Returns:
         CustomInterceptor instance configured with the provided context
+        
+    Raises:
+        ValueError: If skillberry_context is None
     """
+    # Validate context is not None
+    if skillberry_context is None:
+        raise ValueError("skillberry_context cannot be None")
+    
     return CustomInterceptor(skillberry_context)
 
 
@@ -153,11 +172,18 @@ def get_mcp_tools(
     Args:
         port: The port number where the MCP server is running
         server_name: Name identifier for the MCP server
-        skillberry_context: The context to pass to the interceptor
+        skillberry_context: The context to pass to the interceptor (must not be None)
         
     Returns:
         List of tools available from the MCP server
+        
+    Raises:
+        ValueError: If skillberry_context is None
     """
+    # Validate context is not None
+    if skillberry_context is None:
+        raise ValueError("skillberry_context cannot be None")
+    
     logging.info(f"[MCP DEBUG] Getting MCP tools from port: {port}")
     
     # Create tool interceptor with the skillberry context

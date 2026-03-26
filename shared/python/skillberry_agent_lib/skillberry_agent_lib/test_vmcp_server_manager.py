@@ -131,24 +131,13 @@ class TestGetOrCreateVmcpServerBasics(unittest.TestCase):
     
     @patch('skillberry_agent_lib.vmcp_server_manager.skillberry_api')
     def test_none_skillberry_context(self, mock_api):
-        """Test handling of None skillberry_context."""
-        mock_api.get_vmcp_server_details.side_effect = [
-            Exception("Not found"),
-            {
-                "name": "vmcp-server-default",
-                "description": "VMCP Server for env_id: default",
-                "port": 8001,
-                "runtime": {"tools": []}
-            }
-        ]
-        mock_api.add_vmcp_server.return_value = {"name": "vmcp-server-default"}
+        """Test that None skillberry_context raises ValueError."""
+        # Attempting to create server with None context should raise ValueError
+        with self.assertRaises(ValueError) as context:
+            get_or_create_vmcp_server(None, skill_uuid="test-uuid")
         
-        # Create server with None context
-        result = get_or_create_vmcp_server(None, skill_uuid="test-uuid")
-        
-        # Verify default env_id used
-        self.assertEqual(result["env_id"], "default")
-        self.assertEqual(result["name"], "vmcp-server-default")
+        # Verify error message
+        self.assertIn("skillberry_context cannot be None", str(context.exception))
     
     @patch('skillberry_agent_lib.vmcp_server_manager.skillberry_api')
     def test_creation_failure_cleans_up_placeholder(self, mock_api):
@@ -464,7 +453,7 @@ class TestRemoveVmcpServer(unittest.TestCase):
         
         mock_api.remove_vmcp_server.return_value = {"message": "Removed"}
         
-        context = {}  # No env_id specified
+        context = {"env_id": "default"}  # Explicitly specify default env_id
         result = remove_vmcp_server(context)
         
         # Verify default used

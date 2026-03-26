@@ -71,14 +71,18 @@ def execute_agentic_graph(chat_history: list, skillberry_context: dict):
     
     Parameters:
         chat_history: List of chat messages providing conversation context
-        skillberry_context: Context dictionary containing env_id and other metadata
+        skillberry_context: Context dictionary containing env_id and other metadata (must not be None)
     
     Returns:
         str: The final AI response content, including thinking log and answer
         
     Raises:
-        ValueError: If VMCP server creation fails
+        ValueError: If skillberry_context is None or VMCP server creation fails
     """
+    # Validate context is not None
+    if skillberry_context is None:
+        raise ValueError("skillberry_context cannot be None")
+    
     logging.info(f"=======>>> execute_agentic_graph started <<<=======")
     thinking_log = ""
     
@@ -224,17 +228,22 @@ def trajectory(skillberry_context: dict) -> list:
         
     Returns:
         List of messages (AssistantMessage and ToolMessage) representing the trajectory
+        Empty list if trajectory retrieval fails
     """
-    trajectory = trajectory_manager.get_trajectory(skillberry_context)
-    logger.info(f"Retrieved trajectory with {len(trajectory)} messages")
-    
-    # Convert to dict format for compatibility
-    trajectory_dicts = []
-    for msg in trajectory:
-        msg_dict = msg.model_dump()
-        trajectory_dicts.append(msg_dict)
-    
-    return trajectory_dicts
+    try:
+        trajectory = trajectory_manager.get_trajectory(skillberry_context)
+        logger.info(f"Retrieved trajectory with {len(trajectory)} messages")
+        
+        # Convert to dict format for compatibility
+        trajectory_dicts = []
+        for msg in trajectory:
+            msg_dict = msg.model_dump()
+            trajectory_dicts.append(msg_dict)
+        
+        return trajectory_dicts
+    except ValueError as e:
+        logger.error(f"Failed to get trajectory: {e}")
+        return []  # Return empty list on error
 
 
 def disconnect(skillberry_context: dict):

@@ -28,7 +28,21 @@ class TrajectoryManager:
         the trajectory list if it does not already exist.
         
         Thread-safe operation using lock to prevent concurrent modification issues.
+        
+        Raises:
+            ValueError: If skillberry_context is None or missing env_id
         """
+        # Validate context is not None
+        if skillberry_context is None:
+            raise ValueError("skillberry_context cannot be None")
+        
+        # Validate env_id exists
+        if "env_id" not in skillberry_context:
+            raise ValueError(
+                f"skillberry_context must contain 'env_id' key. "
+                f"Received: {skillberry_context}"
+            )
+        
         env_id = skillberry_context["env_id"]
         with self._lock:
             self.trajectories.setdefault(env_id, []).append(message)
@@ -40,7 +54,21 @@ class TrajectoryManager:
         exists, an empty list is returned.
         
         Thread-safe operation using lock to prevent reading during modification.
+        
+        Raises:
+            ValueError: If skillberry_context is None or missing env_id
         """
+        # Validate context is not None
+        if skillberry_context is None:
+            raise ValueError("skillberry_context cannot be None")
+        
+        # Validate env_id exists
+        if "env_id" not in skillberry_context:
+            raise ValueError(
+                f"skillberry_context must contain 'env_id' key. "
+                f"Received: {skillberry_context}"
+            )
+        
         env_id = skillberry_context["env_id"]
         with self._lock:
             trajectory = self.trajectories.get(env_id, [])
@@ -53,7 +81,21 @@ class TrajectoryManager:
         if it exists.
         
         Thread-safe operation using lock to prevent concurrent deletion issues.
+        
+        Raises:
+            ValueError: If skillberry_context is None or missing env_id
         """
+        # Validate context is not None
+        if skillberry_context is None:
+            raise ValueError("skillberry_context cannot be None")
+        
+        # Validate env_id exists
+        if "env_id" not in skillberry_context:
+            raise ValueError(
+                f"skillberry_context must contain 'env_id' key. "
+                f"Received: {skillberry_context}"
+            )
+        
         env_id = skillberry_context["env_id"]
         with self._lock:
             logger.info(f"remove_trajectory: {env_id}")
