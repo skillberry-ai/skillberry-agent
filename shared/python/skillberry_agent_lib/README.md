@@ -1,6 +1,6 @@
 # Skillberry Agent Library
 
-A comprehensive Python library for building AI agents with MCP (Model Context Protocol) integration, trajectory tracking, and Skillberry Tools Store connectivity.
+A Python library for integrating AI agents with the Skillberry ecosystem, providing access to the Skillberry Tools Store, trajectory tracking, and agent orchestration capabilities powered by MCP.
 
 ## 🚀 Quick Start
 
@@ -9,62 +9,175 @@ A comprehensive Python library for building AI agents with MCP (Model Context Pr
 ```bash
 # Using pip
 pip install skillberry-agent-lib
-
-# Using poetry
-poetry add skillberry-agent-lib
 ```
 
-### Basic Usage
+### Importing a Skill to the Store
+
+Before running agents, you need to import a skill into the Skillberry Store. This library includes an example calculator skill in `contrib/examples/skills/calculate/`.
+
+**Import the calculator skill:**
+
+```bash
+# Make sure Skillberry Store is running on http://localhost:8000
+curl -X POST http://localhost:8000/skills/import-anthropic \
+  -F "source_type=folder" \
+  -F "folder_path=$(pwd)/contrib/examples/skills/calculate" \
+  -F "snippet_mode=file"
+```
+
+**Verify the import:**
+
+```bash
+# Get the calculator skill details
+curl -s "http://localhost:8000/skills/calculate" | python -m json.tool
+```
+
+Once imported, the skill will be available for use in your agents.
+
+
+### Complete Minimal Example
+
+Here's a trivial but complete agent that demonstrates the full integration:
+
+**Prerequisites:**
+- Skillberry Tools Store running (default: `http://localhost:8000`)
+- LLM API credentials configured
+- A skill available in the Skillberry Store (e.g., 'calculator') - [see how to import a skill](#importing-a-skill-to-the-store)
 
 ```python
+import asyncio
+import os
+import logging
 from skillberry_agent_lib import (
-    TrajectoryManager,
-    SkillberryAPI,
-    get_or_create_vmcp_server,
     resolve_skill_uuid,
-    SystemMessage,
-    UserMessage,
+    get_or_create_vmcp_server,
+    get_mcp_tools,
+    TrajectoryManager,
+    remove_vmcp_server,
 )
+from skillberry_agent_lib.data_model.virtual_mcp_server import VirtualMcpServer
+from skillberry_agent_lib.langgraph_nodes import create_react_tools_workflow
+from langchain_core.prompts import ChatPromptTemplate
+from langchain_openai import ChatOpenAI
 
-# Initialize core components
-trajectory_manager = TrajectoryManager()
-api_client = SkillberryAPI(base_url="http://localhost:8000")
+# Enable logging to see shared lib component logs
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
-# Create a context for your agent
-context = {"env_id": "my-agent-session-123"}
+async def run_simple_agent():
+    # 1. Setup
+    context = {"env_id": "simple-agent-001"}
+    trajectory_manager = TrajectoryManager()
+    
+    # Initialize LLM (using OpenAI as example)
+    openai_api_key = os.environ.get("OPENAI_API_KEY")
+    if not openai_api_key:
+        print("OPENAI_API_KEY environment variable not set")
+        return
+    
+    llm = ChatOpenAI(
+        model="gpt-4",
+        temperature=0.0,
+        max_retries=2,
+        api_key=openai_api_key,
+    )
+    
+    # 2. Configure skill from Skillberry Store
+    os.environ['SKILL_NAME'] = 'calculator'
+    skill_uuid = resolve_skill_uuid(
+        skill_uuid=os.environ.get('SKILL_UUID'),
+        skill_name=os.environ.get('SKILL_NAME'),
+        chat_history=[]
+    )
+    
+    if not skill_uuid:
+        print("Failed to resolve skill UUID")
+        return
+    
+    # 3. Create VMCP server and get tools
+    vmcp_data = get_or_create_vmcp_server(context, skill_uuid=skill_uuid)
+    server = VirtualMcpServer(**vmcp_data)
+    tools = get_mcp_tools(server.port, server.name, context)
+    
+    print(f"Loaded {len(tools)} tools from Skillberry Store")
+    
+    # 4. Build and run agent with logging enabled
+    llm_with_tools = llm.bind_tools(tools) if tools else llm
+    workflow = create_react_tools_workflow(
+        tools=tools,
+        enable_tool_logging=True,  # Enable detailed tool execution logs
+        tool_logger=logger,         # Pass logger for debugging
+        normalize_anthropic_to_openai=True,  # Normalize message format for compatibility
+    )
+    graph = workflow.compile()
+    
+    prompt = ChatPromptTemplate.from_messages([
+        ("system", "You are a helpful assistant. Always try to use available tools to answer user questions when applicable."),
+        ("human", "{input}"),
+    ])
+    messages = prompt.invoke({"input": "Calculate the result of this mathematical expression: 25 * 4"})
+    
+    # 5. Execute and get result
+    final_message = None
+    async for state in graph.astream(
+        {"messages": messages.to_messages(), "llm": llm_with_tools},
+        stream_mode="values"
+    ):
+        final_message = state["messages"][-1]
+    
+    # 6. Review trajectory and cleanup
+    trajectory = trajectory_manager.get_trajectory(context)
+    print(f"\nAgent completed with {len(trajectory)} steps")
+    if final_message:
+        print(f"Result: {final_message.content}")
+    
+    remove_vmcp_server(context)
+    trajectory_manager.remove_trajectory(context)
 
-# Start building your agent!
+# Run the agent
+if __name__ == "__main__":
+    asyncio.run(run_simple_agent())
 ```
+
+This example shows the complete flow: **Skillberry Store** → resolve skill → create VMCP server → get tools → build agent with logging → execute → cleanup.
+
+**Key features demonstrated:**
+- Skillberry Tools Store integration
+- LLM configuration
+- Tool logging for debugging (`enable_tool_logging=True`)
+- Trajectory tracking
+- Proper cleanup
 
 ## 📚 Table of Contents
 
 - [Overview](#overview)
 - [Building Your First Agent](#building-your-first-agent)
 - [Core Components](#core-components)
-- [Complete Agent Example](#complete-agent-example)
+- [Complete Agent Example](#complete-minimal-example)
 - [Advanced Topics](#advanced-topics)
 - [Development](#development)
 
-## 🎯 Overview
+## Overview
 
 The Skillberry Agent Library provides essential building blocks for creating intelligent agents that can:
 
-- **Track Reasoning Trajectories**: Record and manage agent decision-making steps
-- **Integrate with MCP Servers**: Connect to Model Context Protocol servers for tool execution
 - **Access Skillberry Tools**: Search and utilize tools from the Skillberry Tools Store
-- **Handle Messages**: Work with structured message types (System, User, Assistant, Tool)
+- **Track Reasoning Trajectories**: Record and manage agent decision-making steps
 - **Build with LangGraph**: Leverage pre-built nodes and state definitions for agent graphs
+- **Handle Messages**: Work with structured message types (System, User, Assistant, Tool)
+- **Integrate with MCP Servers**: Connect to Model Context Protocol servers for tool execution
 
-### Key Features
+### Key Features ✨
 
-✅ **Thread-Safe Operations** - Built for concurrent environments (FastAPI, multi-threaded apps)  
-✅ **Type-Safe** - Full Pydantic models with type hints  
-✅ **MCP Integration** - First-class support for Model Context Protocol  
-✅ **Trajectory Management** - Track agent reasoning and tool usage  
-✅ **LangGraph Ready** - Pre-built nodes and state definitions  
-✅ **Flexible Context** - Environment-based context management  
+- **Skillberry Tools Store Integration** - Direct access to the Skillberry ecosystem
+- **Trajectory Management** - Track agent reasoning and tool usage
+- **LangGraph Ready** - Pre-built nodes and state definitions
+- **Thread-Safe Operations** - Built for concurrent environments (FastAPI, multi-threaded apps)
+- **Type-Safe** - Full Pydantic models with type hints
+- **Flexible Context** - Environment-based context management
+- **MCP Integration** - Powered by Model Context Protocol for tool execution
 
-## 🏗️ Building Your First Agent
+## Building Your First Agent
 
 Follow these 7 steps to build a production-ready agent:
 
@@ -85,8 +198,8 @@ agent_context = {
 os.environ['SKILL_NAME'] = 'weather-tool'
 # Or use: os.environ['SKILL_UUID'] = 'your-skill-uuid'
 
-# Skill resolution happens automatically in execute_agentic_graph()
-# But you can also resolve manually if needed:
+# Resolve skill UUID using the configured environment variables
+# You can also pass chat_history for automatic discovery
 chat_history = []  # Your chat messages
 resolved_uuid = resolve_skill_uuid(
     skill_uuid=os.environ.get('SKILL_UUID'),
@@ -222,7 +335,17 @@ trajectory_manager.remove_trajectory(agent_context)
 print("\n✨ Agent execution complete!")
 ```
 
-## 🧩 Core Components
+## Core Components
+
+| Component | Purpose | Key Function |
+|-----------|---------|--------------|
+| **Skill Manager** | Resolve skill UUIDs | `resolve_skill_uuid()` |
+| **VMCP Server Manager** | Manage virtual MCP servers | `get_or_create_vmcp_server()` |
+| **MCP Interceptor** | Track tool calls | `get_mcp_tools()` |
+| **Trajectory Manager** | Track agent reasoning | `TrajectoryManager` |
+| **LangGraph Nodes** | Build React workflows | `create_react_tools_workflow()` |
+| **Message Models** | Structured messages | `SystemMessage`, `UserMessage`, etc. |
+| **Skillberry API** | Tools Store client | `SkillberryAPI` |
 
 ### 1. Skill Manager
 
@@ -291,6 +414,7 @@ assistant = AssistantMessage(
             id="call_abc",
             name="get_weather",
             arguments={"location": "New York"},
+            requestor="assistant",  # Tracks who requested the tool
         )
     ],
 )
@@ -298,8 +422,35 @@ assistant = AssistantMessage(
 # Tool result
 tool_result = ToolMessage(
     role="tool",
-    tool_call_id="call_abc",
+    id="call_abc",
     content="Temperature: 72°F, Sunny",
+    requestor="assistant",  # Matches the tool call requestor
+)
+```
+
+**ToolCall Features:**
+- `id`: Unique identifier for the tool call
+- `name`: Tool name to execute
+- `arguments`: Tool parameters as a dictionary
+- `requestor`: Tracks whether "user" or "assistant" initiated the call
+
+**Message Validation:**
+- Messages automatically validate that they have either `content` or `tool_calls`
+- Invalid messages log errors and add placeholder content to prevent downstream issues
+- All messages support optional `cost`, `usage`, and `raw_data` fields for tracking
+
+**MultiToolMessage:**
+For handling multiple tool responses in a single message:
+
+```python
+from skillberry_agent_lib.data_model.messages import MultiToolMessage, ToolMessage
+
+multi_tool = MultiToolMessage(
+    role="tool",
+    tool_messages=[
+        ToolMessage(id="call_1", content="Result 1", requestor="assistant"),
+        ToolMessage(id="call_2", content="Result 2", requestor="assistant"),
+    ]
 )
 ```
 
@@ -436,179 +587,55 @@ tools = get_mcp_tools(
 Pre-built components for LangGraph agents:
 
 ```python
-from skillberry_agent_lib.langgraph_nodes import (
-    ReactToolsCallingAgentState,
-    parse_tool_call_from_content,
-)
-from langgraph.graph import StateGraph
-
-# Use the pre-defined state
-class MyAgentState(ReactToolsCallingAgentState):
-    # Add custom fields if needed
-    custom_data: str = ""
-
-# Build your graph
-graph = StateGraph(MyAgentState)
-
-# Parse tool calls from content
-tool_calls = parse_tool_call_from_content(
-    '{"tool": "search", "args": {"query": "AI"}}'
-)
-```
-
-## 💡 Complete Agent Example
-
-Here's a full example of building an agent using the MCP tools method pattern:
-
-```python
 import asyncio
-import logging
-import os
-from skillberry_agent_lib import (
-    TrajectoryManager,
-    SkillberryAPI,
-    resolve_skill_uuid,
-    get_or_create_vmcp_server,
-    get_mcp_tools,
+from skillberry_agent_lib.langgraph_nodes import (
+    create_react_tools_workflow,
+    ReactToolsCallingAgentState,
 )
-from skillberry_agent_lib.data_model.virtual_mcp_server import VirtualMcpServer
-from skillberry_agent_lib.langgraph_nodes import create_react_tools_workflow
 from langchain_core.prompts import ChatPromptTemplate
-from langchain_openai import ChatOpenAI
 
-# 1. Initialize components
-trajectory_manager = TrajectoryManager()
-api_client = SkillberryAPI(base_url="http://localhost:8000")
-llm = ChatOpenAI(model="gpt-4")
-
-# 2. Define agent context
-agent_context = {
-    "env_id": "weather-agent-001",
-    "task_id": "get-weather-forecast",
-}
-
-# 3. Create chat prompt template
-chat_prompt = ChatPromptTemplate.from_messages([
-    ("system", "You are a helpful weather assistant with access to tools."),
-    ("system", "If a tool returns an error, ask the user for clarification."),
-    ("human", "{input}"),
-])
-
-# 4. Configure skill via environment variable
-os.environ['SKILL_NAME'] = 'weather-tool'
-# Or use: os.environ['SKILL_UUID'] = 'your-skill-uuid'
-
-# 5. Resolve skill UUID
-chat_history_for_resolution = []  # Empty for initial resolution
-resolved_skill_uuid = resolve_skill_uuid(
-    skill_uuid=os.environ.get('SKILL_UUID'),
-    skill_name=os.environ.get('SKILL_NAME'),
-    chat_history=chat_history_for_resolution
-)
-
-# 6. Create VMCP server with resolved skill
-try:
-    vmcp_data = get_or_create_vmcp_server(
-        skillberry_context=agent_context,
-        skill_uuid=resolved_skill_uuid,
-    )
-    server = VirtualMcpServer(**vmcp_data)
-    print(f"Created VMCP server: {server.name} on port {server.port} with tools: {server.tools}")
-except ValueError as e:
-    print(f"Failed to create VMCP server: {e}")
-    exit(1)
-
-# 7. Get MCP tools with automatic trajectory tracking
-tools = get_mcp_tools(
-    port=server.port,
-    server_name=server.name,
-    skillberry_context=agent_context,
-)
-
-print(f"Loaded {len(tools)} MCP tools with trajectory tracking")
-
-# 8. Bind tools to LLM
-if tools:
-    llm_with_tools = llm.bind_tools(tools=tools, tool_choice="auto")
-    print("Tools bound to LLM")
-else:
-    llm_with_tools = llm
-    print("No tools available, using LLM without tools")
-
-# 9. Create React workflow using the library's helper
+# Create workflow with factory function
 workflow = create_react_tools_workflow(
     tools=tools,
-    enable_tool_logging=False,
     normalize_anthropic_to_openai=True,
 )
-
-# 10. Compile the graph
 graph = workflow.compile()
 
-# 11. Prepare messages
-chat_messages = chat_prompt.invoke({"input": "What's the weather in San Francisco?"})
-llm_messages = chat_messages.to_messages()
+# Prepare messages
+prompt = ChatPromptTemplate.from_messages([
+    ("system", "You are a helpful assistant."),
+    ("human", "{input}"),
+])
+messages = prompt.invoke({"input": "What's the weather?"})
 
-# 12. Run the agent with streaming
+# Invoke the graph
 async def run_agent():
-    """Run the agent and stream results"""
     final_message = None
-    
     async for state in graph.astream(
         {
-            "messages": llm_messages,
-            "llm": llm_with_tools,
+            "messages": messages.to_messages(),
+            "llm": llm_with_tools
+        },
+        {
+            "recursion_limit": 50,
+            "max_execution_time": 120
         },
         stream_mode="values",
     ):
-        message = state["messages"][-1]
-        print(f"Step: {message.type}")
-        final_message = message
-    
+        final_message = state["messages"][-1]
     return final_message
 
-# Execute the agent
-try:
-    final_message = asyncio.run(run_agent())
-    print(f"\n✅ Final Response: {final_message.content}")
-except Exception as e:
-    print(f"❌ Error running agent: {e}")
-
-# 13. Review trajectory
-trajectory = trajectory_manager.get_trajectory(agent_context)
-print(f"\n📊 Agent Trajectory ({len(trajectory)} steps):")
-for i, msg in enumerate(trajectory, 1):
-    print(f"\n  Step {i}: {msg.role}")
-    if hasattr(msg, 'tool_calls') and msg.tool_calls:
-        for call in msg.tool_calls:
-            print(f"    Tool: {call.name}")
-            print(f"    Args: {call.arguments}")
-    if hasattr(msg, 'content') and msg.content:
-        content_preview = msg.content[:100] + "..." if len(msg.content) > 100 else msg.content
-        print(f"    Content: {content_preview}")
-
-# 14. Cleanup - Remove VMCP server and trajectory
-from skillberry_agent_lib import remove_vmcp_server
-
-try:
-    # Remove VMCP server (handles both local registry and Tools Service)
-    removed = remove_vmcp_server(agent_context)
-    if removed:
-        print(f"\n🧹 Successfully removed VMCP server for context: {agent_context}")
-    else:
-        print(f"⚠️ VMCP server not found in local registry (may have been removed from Tools Service)")
-    
-    # Clean up trajectory
-    trajectory_manager.remove_trajectory(agent_context)
-    print(f"🧹 Cleaned up trajectory for context: {agent_context}")
-    
-except Exception as e:
-    print(f"⚠️ Cleanup warning: {e}")
-
-print("\n✨ Agent execution complete!")
+result = asyncio.run(run_agent())
+print(f"Response: {result.content}")
 ```
+## Advanced Topics
 
-## 🔧 Advanced Topics
+| Topic | Description |
+|-------|-------------|
+| [Thread Safety](#thread-safety) | Concurrent agent execution |
+| [Context Management](#context-management) | Best practices for contexts |
+| [Think Logs](#think-logs-feature) | Enable agent reasoning visibility |
+| [Anthropic Normalization](#anthropic-content-normalization) | Handle Anthropic content format |
 
 ### Thread Safety
 
@@ -660,44 +687,85 @@ finally:
     remove_vmcp_server(context)
 ```
 
-## 🛠️ Development
+### Think Logs Feature
+
+Enable thinking logs to see agent reasoning:
+
+```python
+import os
+
+# Enable think logs in responses
+os.environ['ENABLE_THINK_LOGS'] = 'true'
+
+# Response will include <think>...</think> tags with reasoning
+```
+
+**Use Cases**:
+- Debugging agent decision-making
+- Understanding tool selection logic
+- Monitoring agent behavior in production
+
+### Anthropic Content Normalization
+
+Handle Anthropic's list-based content format:
+
+```python
+from skillberry_agent_lib.langgraph_nodes import create_react_tools_workflow
+
+workflow = create_react_tools_workflow(
+    tools=tools,
+    normalize_anthropic_to_openai=True,  # Enable normalization
+)
+```
+
+**What it does**:
+- Converts `[{'text': 'Hello', 'type': 'text'}]` → `"Hello"`
+- Ensures compatibility with OpenAI-style message handling
+- Automatically applied before LLM invocation
+
+## Development
 
 ### Setup Development Environment
 
 ```bash
 # Clone the repository
-git clone https://github.com/skillberry/skillberry-agent-lib.git
-cd skillberry-agent-lib
+git clone https://github.ibm.com/skillberry/skillberry-agent.git
+cd skillberry-agent/shared/python/skillberry_agent_lib
 
-# Install with poetry
-poetry install
+# Create and activate virtual environment
+python3 -m venv .venv
+source .venv/bin/activate
 
-# Or with pip in editable mode
+# Install the library in editable mode
 pip install -e .
+
+# Install development dependencies
+pip install pytest pytest-cov mypy flake8
+```
+
+### Verify Installation
+
+```bash
+# Test that the library imports correctly
+python -c "import skillberry_agent_lib; print('Import successful')"
 ```
 
 ### Running Tests
 
 ```bash
-# With poetry
-poetry run pytest
-
-# With pip
 pytest
 ```
 
 ### Type Checking
 
 ```bash
-# Run mypy
-poetry run mypy skillberry_agent_lib
+mypy skillberry_agent_lib
 ```
 
 ### Code Style
 
 ```bash
-# Run flake8
-poetry run flake8 skillberry_agent_lib
+flake8 skillberry_agent_lib
 ```
 
 ## 📋 Requirements

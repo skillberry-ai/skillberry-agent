@@ -1,15 +1,21 @@
-# skillberry-agent
+# Skillberry Proxy-Agent (SPA)
 
-An AI agent system that leverages existing tools to accomplish tasks efficiently and accurately.
+A proxy-agent service that orchestrates intelligent interactions between customer agents and the Skillberry ecosystem. The Skillberry Proxy-Agent acts as the central coordinator for LLM communication, skill resolution, and response optimization. Seamlessly integrates with Skillberry Store for dynamic tool discovery and execution through MCP protocols. Accessed via OpenAI-compatible endpoints (e.g., chat completions API) for seamless integration with existing AI applications.
 
 ## Features ✨
 
-- **Improve AI accuracy and correctness**: Uses LLM and tools in tandem to improve accuracy and correctness.
-- **Reduce AI systems TCO**: Offloading computational processes to CPU-based deterministic tools.
-- **Tools usage**: Enforce usage of deterministic tools as part of AI systems.
-- **Function calling**: Interface with tools-store-backends and search capabilities to efficiently use AI function calling.
-- **Operational API**: Expose LLM chat completion API allowing integration with any AI application, e.g., AI Agents
-- **Configuration API**: Expose API allowing management of configurations such as: tools store backend, LLM used.
+- **Proxy-Agent Orchestration**: Central coordinator managing interactions between customer agents and Skillberry Store
+- **LLM Integration**: Seamless communication with language models via standardized API endpoints
+- **Intelligent Skill Resolution**: Three-tier strategy (UUID → Name → Chat History) for automatic tool discovery
+- **Skills Semantic Search**: Dynamic tool discovery through semantic search capabilities
+- **MCP Tools Management**: Access and orchestration of relevant skills through MCP API tools and prompts
+- **Response Optimization**: Enhanced and optimized responses before delivery to customer agents
+- **Trajectory Tracking**: Complete audit trail of agent decisions and tool usage for continuous improvement
+- **Automatic Drift Detection**: Monitors and identifies deviations in agent behavior patterns
+- **VMCP Server Management**: Thread-safe virtual MCP server lifecycle per session
+- **Reduce AI Systems TCO**: Offloading computational processes to CPU-based deterministic tools
+- **Operational API**: OpenAI-compatible chat completion endpoints for seamless integration
+- **Configuration Management**: Flexible configuration of tools store backend and LLM providers
 
 ## Quickstart 🚀
 
@@ -17,12 +23,6 @@ An AI agent system that leverages existing tools to accomplish tasks efficiently
 
 ### Run the service with Docker or Podman 🐳
 
-
-```bash
-docker run --name skillberry-agent --env RITS_API_KEY -d -u 1000:1000 -v /tmp:/tmp --network=host skillberry-1.vpc.cloud9.ibm.com:8800/skillberry-dev/skillberry-agent:latest
-```
-
-Alternatively, you can use the make command, which does the same:
 ```bash
 make docker_run
 ```
@@ -33,7 +33,7 @@ make docker_run
 
 Open a browser against `http://127.0.0.1:7000/docs`.
 
-### Prerequisites 🛠️
+## Prerequisites 🛠️
 
 - Export or use `.env` file to set `RITS_API_KEY` for accessing LLMs via RITS:
 
@@ -49,7 +49,7 @@ export WATSONX_PROJECT_ID=********************************
 export WATSONX_URL=https://us-south.ml.cloud.ibm.com
 ```
 
-### Local Setup and Running the Service 🧰
+## Local Setup and Running the Service 🧰
 
 ```bash
 cd ~
@@ -58,12 +58,46 @@ cd skillberry-agent
 make run
 ```
 
->*Note:* By default, skillberry-agent runs on host `0.0.0.0` and port `7000`, `7001`. To change, set the environment variables SBA_PORT, SBA_CONFIG_PORT and/or SBA_HOST
-
 ### Interact with the configuration API 📜
 
 Open a browser against `http://127.0.0.1:7001`.
 
+## Configuration 🎛️
+
+### Agent Behavior
+
+Configure agent behavior using environment variables:
+
+**Skill Selection** (choose one):
+```bash
+# Option 1: Direct skill UUID (highest priority)
+export SKILL_UUID=abc-123-def-456
+
+# Option 2: Skill name (resolves to UUID automatically)
+export SKILL_NAME=weather-tool
+
+# Option 3: Automatic discovery from conversation (fallback)
+# No configuration needed - agent extracts from chat history
+```
+
+**Optional Settings**:
+```bash
+# Enable thinking logs in responses (useful for debugging)
+export ENABLE_THINK_LOGS=true
+```
+
+### API Endpoints
+
+| Endpoint | Purpose | Port |
+|----------|---------|------|
+| `/chat/completions` | OpenAI-compatible chat completion | 7000 |
+| `/v1/chat/completions` | Alternative endpoint path | 7000 |
+| `/prompt` | Simplified prompt endpoint | 7000 |
+| Configuration API | Manage configurations | 7001 |
+
 ---
 
 ## 📚 Additional documentation can be found at [docs](docs).
+
+* Library usage and API reference: [skillberry-agent-lib README](shared/python/skillberry_agent_lib/README.md)
+* Port and environment variable details: [docs/ports-and-env-vars.md](docs/ports-and-env-vars.md)
