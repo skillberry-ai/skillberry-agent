@@ -142,7 +142,6 @@ def get_or_create_vmcp_server(
             "name": vmcp_server_info.get("name") or server_name,
             "description": vmcp_server_info.get("description") or f"VMCP Server for {env_id}",
             "port": vmcp_server_info.get("port"),
-            "tools": vmcp_server_info.get("runtime", {}).get("tools", []),
             "skill_uuid": vmcp_server_info.get("skill_uuid"),
             "env_id": env_id
         }

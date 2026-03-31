@@ -203,3 +203,47 @@ def get_mcp_tools(
         logging.info(f"[MCP DEBUG] Tool {idx+1}: name='{tool_name}', description='{tool_desc}'")
     
     return tools
+
+
+def get_mcp_prompts(
+    port: int,
+    server_name: str,
+    skillberry_context: Dict
+) -> List[Any]:
+    """
+    Get MCP prompts from a server.
+    
+    This function encapsulates the common pattern of:
+    1. Getting prompts from the MCP server via the skillberry API
+    2. Logging prompt information for debugging
+    
+    Args:
+        port: The port number where the MCP server is running
+        server_name: Name identifier for the MCP server
+        skillberry_context: The context (for consistency with get_mcp_tools)
+        
+    Returns:
+        List of prompts available from the MCP server
+        
+    Raises:
+        ValueError: If skillberry_context is None
+    """
+    # Validate context is not None
+    if skillberry_context is None:
+        raise ValueError("skillberry_context cannot be None")
+    
+    logging.debug(f"[MCP DEBUG] Getting MCP prompts from port: {port}")
+    
+    # Get prompts from the MCP server
+    prompts = skillberry_api.get_mcp_prompts(
+        port=port,
+        server_name=server_name
+    )
+    
+    logging.debug(f"[MCP DEBUG] Retrieved {len(prompts)} prompts from MCP server")
+    for idx, prompt in enumerate(prompts):
+        prompt_name = getattr(prompt, "name", "unknown")
+        prompt_desc = getattr(prompt, "description", "no description")
+        logging.debug(f"[MCP DEBUG] Prompt {idx+1}: name='{prompt_name}', description='{prompt_desc}'")
+    
+    return prompts

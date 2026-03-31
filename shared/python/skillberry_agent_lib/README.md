@@ -52,12 +52,12 @@ from skillberry_agent_lib import (
     resolve_skill_uuid,
     get_or_create_vmcp_server,
     get_mcp_tools,
+    build_chat_messages,
     TrajectoryManager,
     remove_vmcp_server,
 )
 from skillberry_agent_lib.data_model.virtual_mcp_server import VirtualMcpServer
 from skillberry_agent_lib.langgraph_nodes import create_react_tools_workflow
-from langchain_core.prompts import ChatPromptTemplate
 from langchain_openai import ChatOpenAI
 
 # Enable logging to see shared lib component logs
@@ -101,7 +101,20 @@ async def run_simple_agent():
     
     print(f"Loaded {len(tools)} tools from Skillberry Store")
     
-    # 4. Build and run agent with logging enabled
+    # 4. Build chat messages with MCP prompts injection
+    # This automatically injects skill-specific instructions from the MCP server
+    chat_history = [
+        {"role": "user", "content": "Calculate the result of this mathematical expression: 25 * 4"}
+    ]
+    
+    messages = build_chat_messages(
+        chat_history=chat_history,
+        mcp_port=port,
+        mcp_server_name=server.name,
+        skillberry_context=context
+    )
+    
+    # 5. Build and run agent with logging enabled
     llm_with_tools = llm.bind_tools(tools) if tools else llm
     workflow = create_react_tools_workflow(
         tools=tools,
@@ -111,13 +124,7 @@ async def run_simple_agent():
     )
     graph = workflow.compile()
     
-    prompt = ChatPromptTemplate.from_messages([
-        ("system", "You are a helpful assistant. Always try to use available tools to answer user questions when applicable."),
-        ("human", "{input}"),
-    ])
-    messages = prompt.invoke({"input": "Calculate the result of this mathematical expression: 25 * 4"})
-    
-    # 5. Execute and get result
+    # 6. Execute and get result
     final_message = None
     async for state in graph.astream(
         {"messages": messages.to_messages(), "llm": llm_with_tools},
@@ -125,7 +132,7 @@ async def run_simple_agent():
     ):
         final_message = state["messages"][-1]
     
-    # 6. Review trajectory and cleanup
+    # 7. Review trajectory and cleanup
     trajectory = trajectory_manager.get_trajectory(context)
     print(f"\nAgent completed with {len(trajectory)} steps")
     if final_message:
@@ -139,11 +146,12 @@ if __name__ == "__main__":
     asyncio.run(run_simple_agent())
 ```
 
-This example shows the complete flow: **Skillberry Store** → resolve skill → create VMCP server → get tools → build agent with logging → execute → cleanup.
+This example shows the complete flow: **Skillberry Store** → resolve skill → create VMCP server → get tools → inject MCP prompts → build agent with logging → execute → cleanup.
 
 **Key features demonstrated:**
 - Skillberry Tools Store integration
 - LLM configuration
+- MCP prompts injection - Skill-specific instructions automatically added to system messages
 - Tool logging for debugging (`enable_tool_logging=True`)
 - Trajectory tracking
 - Proper cleanup
@@ -175,7 +183,7 @@ The Skillberry Agent Library provides essential building blocks for creating int
 - **Thread-Safe Operations** - Built for concurrent environments (FastAPI, multi-threaded apps)
 - **Type-Safe** - Full Pydantic models with type hints
 - **Flexible Context** - Environment-based context management
-- **MCP Integration** - Powered by Model Context Protocol for tool execution
+- **MCP Integration** - Powered by Model Context Protocol for tool execution (MCP tools) and contextual instructions (MCP prompts)
 
 ## Building Your First Agent
 
@@ -342,6 +350,7 @@ print("\n✨ Agent execution complete!")
 | **Skill Manager** | Resolve skill UUIDs | `resolve_skill_uuid()` |
 | **VMCP Server Manager** | Manage virtual MCP servers | `get_or_create_vmcp_server()` |
 | **MCP Interceptor** | Track tool calls | `get_mcp_tools()` |
+| **Prompt Manager** | Build messages with MCP prompts | `build_chat_messages()` |
 | **Trajectory Manager** | Track agent reasoning | `TrajectoryManager` |
 | **LangGraph Nodes** | Build React workflows | `create_react_tools_workflow()` |
 | **Message Models** | Structured messages | `SystemMessage`, `UserMessage`, etc. |
@@ -628,6 +637,30 @@ async def run_agent():
 result = asyncio.run(run_agent())
 print(f"Response: {result.content}")
 ```
+
+### 8. MCP Prompts/Snippets
+
+Skills can provide contextual instructions that are automatically injected into the agent's system messages to guide behavior with domain-specific knowledge.
+
+#### Usage
+
+```python
+from skillberry_agent_lib import build_chat_messages
+
+# Prepare chat history (no system message needed - build_chat_messages provides it)
+chat_history = [
+    {"role": "user", "content": "Calculate the result of this mathematical expression: 25 * 4"}
+]
+
+# Build messages with MCP prompts injection
+# This automatically injects skill-specific instructions from the MCP server
+chat_messages = build_chat_messages(
+    chat_history=chat_history,
+    mcp_port=port,
+    mcp_server_name=server.name,
+    skillberry_context=context
+)
+```
 ## Advanced Topics
 
 | Topic | Description |
@@ -668,6 +701,11 @@ for t in threads:
 Best practices for managing agent contexts:
 
 ```python
+from datetime import datetime
+from skillberry_agent_lib import TrajectoryManager, remove_vmcp_server
+
+trajectory_manager = TrajectoryManager()
+
 # Use descriptive env_ids
 context = {
     "env_id": f"user-{user_id}-session-{session_id}",

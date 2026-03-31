@@ -4,8 +4,6 @@ import logging
 import os
 
 # Third-party imports
-from langchain_core.prompts import ChatPromptTemplate
-
 # Local application imports
 from config.config_ui import config as _config
 from llm.common import current_llm
@@ -14,35 +12,15 @@ from skillberry_agent_lib.langgraph_nodes import (
     create_react_tools_workflow,
 )
 from skillberry_agent_lib.mcp_interceptor import get_mcp_tools
+from skillberry_agent_lib.prompt import (
+    build_chat_messages,
+)
 from skillberry_agent_lib.skill_manager import resolve_skill_uuid
 from skillberry_agent_lib.trajectory_manager import trajectory_manager
 from skillberry_agent_lib.vmcp_server_manager import get_or_create_vmcp_server, remove_vmcp_server
 
 
 logger = logging.getLogger(__name__)
-
-
-execute_tools_with_parameters_chat_prompt_template = ChatPromptTemplate.from_messages(
-    [
-        ("system", "You are an expert assistant"),
-        (
-            "system",
-            "If a tool returns an exception, and error, no result or any other failure, "
-            "return to the user immediately! and the user to provide additional information or clarification. "
-            "DO NOT try to call any additional tools or functions until the user provides additional information or clarification.",
-        ),
-        (
-            "system",
-            "Try to use tools and ask the user for clarification and additional information as much as possible. "
-            " If, and only if this completely fails, use the transfer_to_human_agents tool.",
-        ),
-        "{chat_history}",
-        (
-            "system",
-            "DO NOT USE the transfer_to_human_agents tool !!!",
-        ),
-    ]
-)
 
 
 def execute_agentic_graph(chat_history: list, skillberry_context: dict):
@@ -52,14 +30,18 @@ def execute_agentic_graph(chat_history: list, skillberry_context: dict):
     Environment Variables:
         SKILL_UUID: Direct skill UUID (optional, highest priority)
         SKILL_NAME: Skill name to resolve (optional, medium priority)
+        ENABLE_THINK_LOGS: Include thinking logs in response (default: false)
     
     This function orchestrates the complete agentic workflow:
-    1. Resolves skill configuration from environment variables
-    2. Creates or retrieves a VMCP server with the resolved skill
-    3. Obtains MCP tools from the server
-    4. Binds tools to the LLM
-    5. Executes a React-style agent workflow
-    6. Returns the final AI response
+    1. Read skill configuration from environment variables
+    2. Resolve skill UUID using multiple strategies
+    3. Create or get VMCP server with resolved skill
+    4. Get tools from the MCP server with interceptor
+    5. Bind tools to LLM
+    6. Create and compile the React workflow
+    7. Prepare chat messages with MCP prompts injection
+    8. Invoke the graph and stream results
+    9. Build final response
     
     Skill Resolution Strategy:
     - SKILL_UUID env var: Direct skill UUID (highest priority)
@@ -74,7 +56,7 @@ def execute_agentic_graph(chat_history: list, skillberry_context: dict):
         skillberry_context: Context dictionary containing env_id and other metadata (must not be None)
     
     Returns:
-        str: The final AI response content, including thinking log and answer
+        str: The final AI response content
         
     Raises:
         ValueError: If skillberry_context is None or VMCP server creation fails
@@ -169,18 +151,24 @@ def execute_agentic_graph(chat_history: list, skillberry_context: dict):
             _final_message = message
         return _final_message
 
-    # 5. Prepare chat messages
-    original_chat_messages = execute_tools_with_parameters_chat_prompt_template.invoke(
-        chat_history
+    # 7. Prepare chat messages with MCP prompts injection
+    original_chat_messages = build_chat_messages(
+        chat_history=chat_history,
+        mcp_port=port,
+        mcp_server_name=server.name,
+        skillberry_context=skillberry_context
     )
+    
+    llm_messages = original_chat_messages.to_messages()
 
-    # 7. Invoke the graph and stream results
+    # 8. Invoke the graph and stream results
     try:
         logging.info(f"=====> Invoking the tools react agent")
+        logging.info(f"Chat history has {len(chat_history)} messages")
+        logging.info(f"LLM messages prepared: {len(llm_messages)} messages")
         recursion_limit = _config.get("tools_react_agent__recursion_limit")
-        llm_messages = original_chat_messages.to_messages()
 
-        final_message = asyncio.run (trace_stream(graph.astream(
+        final_message = asyncio.run(trace_stream(graph.astream(
             {
                 "messages": llm_messages,
                 "llm": llm_with_tools
@@ -199,7 +187,7 @@ def execute_agentic_graph(chat_history: list, skillberry_context: dict):
         f"=====> The agentic flow has finished executing the tools with parameters"
     )
 
-    # 8. Build final response
+    # 9. Build final response
     try:
         ai_response = final_message.content
         logging.info(f"final AI response: {final_message.content} given from: {llm_messages}")

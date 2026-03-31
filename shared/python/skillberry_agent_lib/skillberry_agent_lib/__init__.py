@@ -45,6 +45,11 @@ from skillberry_agent_lib.vmcp_server_manager import (
 from skillberry_agent_lib.mcp_interceptor import (
     create_tool_interceptor,
     get_mcp_tools,
+    get_mcp_prompts,
+)
+
+from skillberry_agent_lib.prompt import (
+    build_chat_messages,
 )
 
 __all__ = [
@@ -86,6 +91,10 @@ __all__ = [
     # MCP Interceptor
     "create_tool_interceptor",
     "get_mcp_tools",
+    "get_mcp_prompts",
+    
+    # Prompt utilities
+    "build_chat_messages",
 ]
 
 # Made with Bob

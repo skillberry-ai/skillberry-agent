@@ -62,7 +62,6 @@ class TestGetOrCreateVmcpServerBasics(unittest.TestCase):
         self.assertEqual(result["name"], "vmcp-server-test-env")
         self.assertEqual(result["port"], 8001)
         self.assertEqual(result["skill_uuid"], "test-uuid-123")
-        self.assertEqual(result["tools"], ["tool1", "tool2"])
         self.assertEqual(result["env_id"], "test-env")
         
         # Verify API calls
@@ -516,8 +515,8 @@ class TestVmcpServerManagerEdgeCases(unittest.TestCase):
         clear_vmcp_servers()
     
     @patch('skillberry_agent_lib.vmcp_server_manager.skillberry_api')
-    def test_missing_runtime_tools(self, mock_api):
-        """Test handling when runtime.tools is missing."""
+    def test_missing_runtime_fields(self, mock_api):
+        """Test handling when runtime fields are missing."""
         mock_api.get_vmcp_server_details.side_effect = [
             Exception("Not found"),
             {
@@ -532,7 +531,6 @@ class TestVmcpServerManagerEdgeCases(unittest.TestCase):
         result = get_or_create_vmcp_server(context)
         
         # Verify empty tools list
-        self.assertEqual(result["tools"], [])
     
     @patch('skillberry_agent_lib.vmcp_server_manager.skillberry_api')
     def test_missing_port(self, mock_api):
@@ -541,7 +539,7 @@ class TestVmcpServerManagerEdgeCases(unittest.TestCase):
             Exception("Not found"),
             {
                 "name": "vmcp-server-test-env",
-                "runtime": {"tools": []}
+                "runtime": {}
                 # No port field
             }
         ]
@@ -561,7 +559,7 @@ class TestVmcpServerManagerEdgeCases(unittest.TestCase):
             {
                 "name": "vmcp-server-test-env",
                 "port": 8001,
-                "runtime": {"tools": []}
+                "runtime": {}
             }
         ]
         mock_api.add_vmcp_server.return_value = {"name": "vmcp-server-test-env"}

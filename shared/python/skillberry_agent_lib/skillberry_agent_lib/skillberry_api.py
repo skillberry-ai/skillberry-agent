@@ -311,7 +311,7 @@ class SkillberryAPI:
             server_name: Name identifier for the MCP server (default: "skillberry-tools")
 
         Returns:
-            list: List of prompts available from the MCP server
+            list: List of prompt objects available from the MCP server
 
         Raises:
             Exception: Any failure occurred during execution.
@@ -320,24 +320,71 @@ class SkillberryAPI:
         logger.info(f"get_mcp_prompts called for port: {port}, server_name: {server_name}")
         
         try:
-            from langchain_mcp_adapters.client import MultiServerMCPClient
+            from mcp.client.sse import sse_client
+            from mcp import ClientSession
             
             # Construct the MCP server URL
             mcp_server_base_url = f"{extract_base_url(self.base_url)}:{port}"
-            logger.info(f"Connecting to MCP server at: {mcp_server_base_url}/sse")
+            mcp_url = f"{mcp_server_base_url}/sse"
+            logger.info(f"Connecting to MCP server at: {mcp_url}")
             
-            # Create MCP client
-            client = MultiServerMCPClient(
-                {
-                    server_name: {
-                        "url": f"{mcp_server_base_url}/sse",
-                        "transport": "sse",
-                    }
-                }
-            )
+            # Use asyncio to fetch prompts
+            async def fetch_prompts():
+                prompts_list = []
+                async with sse_client(mcp_url) as (read, write):
+                    async with ClientSession(read, write) as session:
+                        await session.initialize()
+                        
+                        # List available prompts
+                        prompts_result = await session.list_prompts()
+                        if not prompts_result or not prompts_result.prompts:
+                            return []
+                        
+                        # Fetch the actual content for each prompt
+                        for prompt_meta in prompts_result.prompts:
+                            try:
+                                # Get the full prompt content using get_prompt
+                                prompt_result = await session.get_prompt(prompt_meta.name)
+                                if prompt_result and prompt_result.messages:
+                                    # Extract the content from the messages
+                                    for message in prompt_result.messages:
+                                        if hasattr(message, 'content'):
+                                            content = message.content
+                                            # Handle different content types - use getattr to avoid type errors
+                                            description = getattr(content, 'text', None)
+                                            if description is None:
+                                                if isinstance(content, str):
+                                                    description = content
+                                                else:
+                                                    description = str(content)
+                                            
+                                            # Create a prompt object with the actual content
+                                            prompt_obj = type('Prompt', (), {
+                                                'name': prompt_meta.name,
+                                                'description': description
+                                            })()
+                                            prompts_list.append(prompt_obj)
+                                            break  # Use first message content
+                            except Exception as e:
+                                logger.warning(f"Failed to get content for prompt '{prompt_meta.name}': {e}")
+                                # Fallback to using the metadata description if available
+                                if hasattr(prompt_meta, 'description') and prompt_meta.description:
+                                    prompts_list.append(prompt_meta)
+                
+                return prompts_list
             
-            # Get prompts from the MCP server
-            prompts = asyncio.run(client.get_prompts())
+            # Check if we're already in an event loop (e.g., FastAPI context)
+            try:
+                loop = asyncio.get_running_loop()
+                # We're in an async context - run in a thread to avoid event loop conflict
+                import concurrent.futures
+                with concurrent.futures.ThreadPoolExecutor() as executor:
+                    future = executor.submit(asyncio.run, fetch_prompts())
+                    prompts = future.result(timeout=30)  # 30 second timeout
+            except RuntimeError:
+                # No event loop running - safe to use asyncio.run()
+                prompts = asyncio.run(fetch_prompts())
+            
             logger.info(f"Retrieved {len(prompts)} prompts from MCP server: {[getattr(p, 'name', 'unknown') for p in prompts]}")
             
             return prompts

@@ -9,6 +9,7 @@ A proxy-agent service that orchestrates intelligent interactions between custome
 - **Intelligent Skill Resolution**: Three-tier strategy (UUID → Name → Chat History) for automatic tool discovery
 - **Skills Semantic Search**: Dynamic tool discovery through semantic search capabilities
 - **MCP Tools Management**: Access and orchestration of relevant skills through MCP API tools and prompts
+- **MCP Prompts/Snippets Support**: Skills can provide contextual instructions that are automatically injected into agent system prompts, enabling domain-specific guidance and behavior customization
 - **Response Optimization**: Enhanced and optimized responses before delivery to customer agents
 - **Trajectory Tracking**: Complete audit trail of agent decisions and tool usage for continuous improvement
 - **Automatic Drift Detection**: Monitors and identifies deviations in agent behavior patterns
