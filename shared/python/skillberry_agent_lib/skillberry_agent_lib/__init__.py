@@ -26,7 +26,7 @@ from skillberry_agent_lib.data_model.messages import (
 
 from skillberry_agent_lib.trajectory_manager import TrajectoryManager
 
-from skillberry_agent_lib.skillberry_api import SkillberryAPI
+from skillberry_agent_lib.skillberry_store import SkillberryStore
 
 from skillberry_agent_lib.skill_manager import resolve_skill_uuid
 

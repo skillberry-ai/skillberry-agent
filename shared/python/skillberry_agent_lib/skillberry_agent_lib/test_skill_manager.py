@@ -61,7 +61,7 @@ class TestResolveSkillUuidDirectUuid(unittest.TestCase):
 class TestResolveSkillUuidByName(unittest.TestCase):
     """Test resolve_skill_uuid with skill name lookup (Priority 2)."""
     
-    @patch('skillberry_agent_lib.skill_manager.skillberry_api')
+    @patch('skillberry_agent_lib.skill_manager.skillberry_store')
     def test_skill_name_resolution_success(self, mock_api):
         """Test successful skill name resolution."""
         test_uuid = "550e8400-e29b-41d4-a716-446655440000"
@@ -76,7 +76,7 @@ class TestResolveSkillUuidByName(unittest.TestCase):
         self.assertEqual(result, test_uuid)
         mock_api.get_skill.assert_called_once_with("test-skill")
     
-    @patch('skillberry_agent_lib.skill_manager.skillberry_api')
+    @patch('skillberry_agent_lib.skill_manager.skillberry_store')
     def test_skill_name_resolution_no_uuid(self, mock_api):
         """Test skill name resolution when skill has no UUID."""
         mock_api.get_skill.return_value = {
@@ -90,7 +90,7 @@ class TestResolveSkillUuidByName(unittest.TestCase):
         self.assertIsNone(result)
         mock_api.get_skill.assert_called_once_with("test-skill")
     
-    @patch('skillberry_agent_lib.skill_manager.skillberry_api')
+    @patch('skillberry_agent_lib.skill_manager.skillberry_store')
     def test_skill_name_resolution_api_error(self, mock_api):
         """Test skill name resolution when API call fails."""
         mock_api.get_skill.side_effect = Exception("API Error")
@@ -100,7 +100,7 @@ class TestResolveSkillUuidByName(unittest.TestCase):
         self.assertIsNone(result)
         mock_api.get_skill.assert_called_once_with("test-skill")
     
-    @patch('skillberry_agent_lib.skill_manager.skillberry_api')
+    @patch('skillberry_agent_lib.skill_manager.skillberry_store')
     def test_skill_name_takes_precedence_over_chat_history(self, mock_api):
         """Test that skill name takes precedence over chat history."""
         test_uuid = "550e8400-e29b-41d4-a716-446655440000"
@@ -118,7 +118,7 @@ class TestResolveSkillUuidByName(unittest.TestCase):
 class TestResolveSkillUuidBySearch(unittest.TestCase):
     """Test resolve_skill_uuid with search-based resolution (Priority 3)."""
     
-    @patch('skillberry_agent_lib.skill_manager.skillberry_api')
+    @patch('skillberry_agent_lib.skill_manager.skillberry_store')
     @patch('skillberry_agent_lib.skill_manager._extract_search_term_from_chat_history')
     def test_search_based_resolution_success(self, mock_extract, mock_api):
         """Test successful search-based resolution."""

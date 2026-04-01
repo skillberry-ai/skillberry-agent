@@ -3,7 +3,7 @@ import logging
 import threading
 import time
 
-from skillberry_agent_lib.skillberry_api import skillberry_api
+from skillberry_agent_lib.skillberry_store import skillberry_store
 
 
 # Thread-safe registry for VMCP servers
@@ -108,7 +108,7 @@ def get_or_create_vmcp_server(
         # Step 2: Check if server already exists in Skillberry Tools Service
         vmcp_server_info = None
         try:
-            vmcp_server_info = skillberry_api.get_vmcp_server_details(name=server_name)
+            vmcp_server_info = skillberry_store.get_vmcp_server_details(name=server_name)
             logging.info(f"Found existing VMCP server '{server_name}' in Tools Service")
             
             # Validate skill UUID match if both are specified
@@ -125,7 +125,7 @@ def get_or_create_vmcp_server(
         
         # Step 3: Create server if it doesn't exist
         if vmcp_server_info is None:
-            vmcp_response = skillberry_api.add_vmcp_server(
+            vmcp_response = skillberry_store.add_vmcp_server(
                 name=server_name,
                 description=f"VMCP Server for env_id: {env_id}",
                 skill_uuid=skill_uuid,
@@ -134,7 +134,7 @@ def get_or_create_vmcp_server(
             logging.info(f"VMCP server created with response: {vmcp_response}")
             
             # Get full server details including runtime information
-            vmcp_server_info = skillberry_api.get_vmcp_server_details(name=server_name)
+            vmcp_server_info = skillberry_store.get_vmcp_server_details(name=server_name)
             logging.info(f"Retrieved VMCP server info: {vmcp_server_info}")
         
         # Step 4: Extract necessary fields for VirtualMcpServer
@@ -185,7 +185,7 @@ def remove_vmcp_server(skillberry_context: Dict) -> bool:
         Even if the server is not in the local registry, this function will still
         attempt to remove it from the Skillberry Tools Service.
     """
-    from skillberry_agent_lib.skillberry_api import skillberry_api
+    from skillberry_agent_lib.skillberry_store import skillberry_store
     
     # Validate context is not None
     if skillberry_context is None:
@@ -213,7 +213,7 @@ def remove_vmcp_server(skillberry_context: Dict) -> bool:
     
     # Remove from Skillberry Tools Service
     try:
-        skillberry_api.remove_vmcp_server(name=server_name)
+        skillberry_store.remove_vmcp_server(name=server_name)
         logging.info(f"Removed VMCP server '{server_name}' from Skillberry Tools Service")
     except Exception as e:
         logging.warning(f"Failed to remove VMCP server '{server_name}' from Tools Service: {e}")

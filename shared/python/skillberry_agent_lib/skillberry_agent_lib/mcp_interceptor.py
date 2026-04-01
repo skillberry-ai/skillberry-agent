@@ -3,7 +3,7 @@ from typing import Any, Dict, List
 import uuid
 
 from skillberry_agent_lib.data_model.messages import AssistantMessage, ToolCall, ToolMessage
-from skillberry_agent_lib.skillberry_api import skillberry_api
+from skillberry_agent_lib.skillberry_store import skillberry_store
 from skillberry_agent_lib.trajectory_manager import trajectory_manager
 
 
@@ -190,7 +190,7 @@ def get_mcp_tools(
     interceptor = create_tool_interceptor(skillberry_context)
     
     # Get tools with the interceptor
-    tools = skillberry_api.get_mcp_tools(
+    tools = skillberry_store.get_mcp_tools(
         port=port,
         server_name=server_name,
         tool_interceptors=[interceptor]

@@ -34,7 +34,7 @@ class TestGetOrCreateVmcpServerBasics(unittest.TestCase):
         """Clear registry after each test."""
         clear_vmcp_servers()
     
-    @patch('skillberry_agent_lib.vmcp_server_manager.skillberry_api')
+    @patch('skillberry_agent_lib.vmcp_server_manager.skillberry_store')
     def test_create_new_server_success(self, mock_api):
         """Test successful creation of a new VMCP server."""
         # Setup mock responses
@@ -72,7 +72,7 @@ class TestGetOrCreateVmcpServerBasics(unittest.TestCase):
             skillberry_context=context
         )
     
-    @patch('skillberry_agent_lib.vmcp_server_manager.skillberry_api')
+    @patch('skillberry_agent_lib.vmcp_server_manager.skillberry_store')
     def test_reuse_existing_server(self, mock_api):
         """Test reusing an existing VMCP server from registry."""
         # Setup mock for first creation
@@ -105,7 +105,7 @@ class TestGetOrCreateVmcpServerBasics(unittest.TestCase):
         mock_api.add_vmcp_server.assert_not_called()
         mock_api.get_vmcp_server_details.assert_not_called()
     
-    @patch('skillberry_agent_lib.vmcp_server_manager.skillberry_api')
+    @patch('skillberry_agent_lib.vmcp_server_manager.skillberry_store')
     def test_server_already_exists_in_tools_service(self, mock_api):
         """Test when server already exists in Skillberry Tools Service."""
         # Setup mock - server exists on first check
@@ -128,7 +128,7 @@ class TestGetOrCreateVmcpServerBasics(unittest.TestCase):
         # Verify add_vmcp_server was NOT called
         mock_api.add_vmcp_server.assert_not_called()
     
-    @patch('skillberry_agent_lib.vmcp_server_manager.skillberry_api')
+    @patch('skillberry_agent_lib.vmcp_server_manager.skillberry_store')
     def test_none_skillberry_context(self, mock_api):
         """Test that None skillberry_context raises ValueError."""
         # Attempting to create server with None context should raise ValueError
@@ -138,7 +138,7 @@ class TestGetOrCreateVmcpServerBasics(unittest.TestCase):
         # Verify error message
         self.assertIn("skillberry_context cannot be None", str(context.exception))
     
-    @patch('skillberry_agent_lib.vmcp_server_manager.skillberry_api')
+    @patch('skillberry_agent_lib.vmcp_server_manager.skillberry_store')
     def test_creation_failure_cleans_up_placeholder(self, mock_api):
         """Test that placeholder is removed on creation failure."""
         # Setup mock to fail
@@ -156,7 +156,7 @@ class TestGetOrCreateVmcpServerBasics(unittest.TestCase):
         # Verify placeholder was removed from registry
         self.assertNotIn("test-env", _vmcp_server_registry)
     
-    @patch('skillberry_agent_lib.vmcp_server_manager.skillberry_api')
+    @patch('skillberry_agent_lib.vmcp_server_manager.skillberry_store')
     def test_skill_uuid_mismatch_warning(self, mock_api):
         """Test warning when existing server has different skill_uuid."""
         # Setup mock - server exists with different skill_uuid
@@ -192,7 +192,7 @@ class TestGetOrCreateVmcpServerThreadSafety(unittest.TestCase):
         """Clear registry after each test."""
         clear_vmcp_servers()
     
-    @patch('skillberry_agent_lib.vmcp_server_manager.skillberry_api')
+    @patch('skillberry_agent_lib.vmcp_server_manager.skillberry_store')
     def test_concurrent_creation_same_env_id(self, mock_api):
         """Test multiple threads trying to create server for same env_id.
         
@@ -229,7 +229,7 @@ class TestGetOrCreateVmcpServerThreadSafety(unittest.TestCase):
         mock_api.add_vmcp_server.assert_not_called()
         mock_api.get_vmcp_server_details.assert_not_called()
     
-    @patch('skillberry_agent_lib.vmcp_server_manager.skillberry_api')
+    @patch('skillberry_agent_lib.vmcp_server_manager.skillberry_store')
     def test_concurrent_creation_different_env_ids(self, mock_api):
         """Test multiple threads creating servers for different env_ids."""
         num_envs = 10
@@ -382,7 +382,7 @@ class TestRemoveVmcpServer(unittest.TestCase):
         """Clear registry after each test."""
         clear_vmcp_servers()
     
-    @patch('skillberry_agent_lib.skillberry_api.skillberry_api')
+    @patch('skillberry_agent_lib.skillberry_store.skillberry_store')
     def test_remove_existing_server(self, mock_api):
         """Test removing an existing server from registry and Tools Service."""
         # Add server to registry
@@ -403,7 +403,7 @@ class TestRemoveVmcpServer(unittest.TestCase):
         # Verify API call
         mock_api.remove_vmcp_server.assert_called_once_with(name="vmcp-server-test-env")
     
-    @patch('skillberry_agent_lib.skillberry_api.skillberry_api')
+    @patch('skillberry_agent_lib.skillberry_store.skillberry_store')
     def test_remove_nonexistent_server(self, mock_api):
         """Test removing a server that doesn't exist in registry."""
         mock_api.remove_vmcp_server.return_value = {"message": "Removed"}
@@ -417,7 +417,7 @@ class TestRemoveVmcpServer(unittest.TestCase):
         # Verify API still called (cleanup Tools Service)
         mock_api.remove_vmcp_server.assert_called_once_with(name="vmcp-server-nonexistent")
     
-    @patch('skillberry_agent_lib.skillberry_api.skillberry_api')
+    @patch('skillberry_agent_lib.skillberry_store.skillberry_store')
     def test_remove_server_api_failure(self, mock_api):
         """Test removal when Tools Service API fails."""
         # Add server to registry
@@ -441,7 +441,7 @@ class TestRemoveVmcpServer(unittest.TestCase):
         # Verify warning logged
         self.assertTrue(any("Failed to remove VMCP server" in msg for msg in log.output))
     
-    @patch('skillberry_agent_lib.skillberry_api.skillberry_api')
+    @patch('skillberry_agent_lib.skillberry_store.skillberry_store')
     def test_remove_with_default_env_id(self, mock_api):
         """Test removal with default env_id."""
         # Add server with default env_id
@@ -514,9 +514,15 @@ class TestVmcpServerManagerEdgeCases(unittest.TestCase):
         """Clear registry after each test."""
         clear_vmcp_servers()
     
+<<<<<<< HEAD
     @patch('skillberry_agent_lib.vmcp_server_manager.skillberry_api')
     def test_missing_runtime_fields(self, mock_api):
         """Test handling when runtime fields are missing."""
+=======
+    @patch('skillberry_agent_lib.vmcp_server_manager.skillberry_store')
+    def test_missing_runtime_tools(self, mock_api):
+        """Test handling when runtime.tools is missing."""
+>>>>>>> 64ebdbb (1. Dropped local requirements - use uv sources in pyproject.toml is the correct way. 2. Replaced REST calls with SDK calls)
         mock_api.get_vmcp_server_details.side_effect = [
             Exception("Not found"),
             {
@@ -532,7 +538,7 @@ class TestVmcpServerManagerEdgeCases(unittest.TestCase):
         
         # Verify empty tools list
     
-    @patch('skillberry_agent_lib.vmcp_server_manager.skillberry_api')
+    @patch('skillberry_agent_lib.vmcp_server_manager.skillberry_store')
     def test_missing_port(self, mock_api):
         """Test handling when port is missing."""
         mock_api.get_vmcp_server_details.side_effect = [
@@ -551,7 +557,7 @@ class TestVmcpServerManagerEdgeCases(unittest.TestCase):
         # Verify None port
         self.assertIsNone(result["port"])
     
-    @patch('skillberry_agent_lib.vmcp_server_manager.skillberry_api')
+    @patch('skillberry_agent_lib.vmcp_server_manager.skillberry_store')
     def test_no_skill_uuid_provided(self, mock_api):
         """Test creating server without skill_uuid."""
         mock_api.get_vmcp_server_details.side_effect = [

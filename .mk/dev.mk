@@ -1,12 +1,12 @@
 ##@ Development
 
 # Override install-requirements to also install local skillberry-agent-lib
-.PHONY: install-requirements-local
-install-requirements-local:
-	@echo "Installing local skillberry-agent-lib package..."
-	@uv pip install -e shared/python/skillberry_agent_lib/
+# .PHONY: install-requirements-local
+# install-requirements-local:
+# 	@echo "Installing local skillberry-agent-lib package..."
+# 	@uv pip install -e shared/python/skillberry_agent_lib/
 
-test: install-requirements install-requirements-local ## Test the agent service and shared lib
+test: install-requirements ## Test the agent service and shared lib
 	@echo "Running root tests..."
 	pytest
 	@echo "Running shared lib tests..."

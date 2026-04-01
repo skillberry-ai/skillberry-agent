@@ -2,7 +2,7 @@ import os
 import logging
 from typing import Optional, List
 
-from skillberry_agent_lib.skillberry_api import skillberry_api
+from skillberry_agent_lib.skillberry_store import skillberry_store
 
 logger = logging.getLogger(__name__)
 
@@ -54,7 +54,7 @@ def resolve_skill_uuid(
     if skill_name:
         logger.info(f"[resolve_skill_uuid] Resolving UUID from name: {skill_name}")
         try:
-            skill = skillberry_api.get_skill(skill_name)
+            skill = skillberry_store.get_skill(skill_name)
             resolved_uuid = skill.get('uuid')
             if resolved_uuid:
                 logger.info(f"[resolve_skill_uuid] Resolved '{skill_name}' to UUID: {resolved_uuid}")
@@ -74,7 +74,7 @@ def resolve_skill_uuid(
                 return None
                 
             logger.info(f"[resolve_skill_uuid] Extracted search term: '{search_term}'")
-            resolved_uuid = skillberry_api.find_skill_uuid_by_search(search_term)
+            resolved_uuid = skillberry_store.find_skill_uuid_by_search(search_term)
             
             if resolved_uuid:
                 logger.info(f"[resolve_skill_uuid] Found skill via search: {resolved_uuid}")
