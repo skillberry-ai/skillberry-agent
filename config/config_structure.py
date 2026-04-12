@@ -42,11 +42,6 @@ CONFIG_STRUCTURE = {
         "default": 0,
         "label": "The LLM model temperature: ",
     },
-    "bypass_agentic_workflow": {
-        "type": "bool",
-        "default": False,
-        "label": "Bypass agentic workflow and call LLM directly: ",
-    },
     "mcp_prompts_position": {
         "type": "str",
         "default": "prefix",

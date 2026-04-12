@@ -103,13 +103,12 @@ def convert_tools_for_binding(tools: List[Tool]) -> List[Dict[str, Any]]:
     return tools_for_binding
 
 
-def build_response_with_tool_calls(llm_response: Any, bypass_mode: bool = False) -> Dict[str, Any]:
+def build_response_with_tool_calls(llm_response: Any) -> Dict[str, Any]:
     """
     Build OpenAI-compatible response with proper tool call handling.
     
     Args:
         llm_response: Response from LLM (AIMessage or string)
-        bypass_mode: Whether this is from bypass mode (for logging purposes)
         
     Returns:
         Dictionary with properly formatted message and finish_reason
@@ -117,8 +116,7 @@ def build_response_with_tool_calls(llm_response: Any, bypass_mode: bool = False)
     # Check if response is an AIMessage object (has content attribute)
     if hasattr(llm_response, 'content'):
         # AIMessage object - extract content and tool_calls
-        mode_str = "bypass mode" if bypass_mode else "agentic workflow"
-        logging.info(f"Processing {mode_str} AIMessage response")
+        logging.info(f"Processing AIMessage response")
         
         message_dict = {
             "role": "assistant",
@@ -211,62 +209,20 @@ def api_chat_completion(chat_request: ChatRequest, request: Request):
                 logging.debug(f"chat_messages to append: {message}")
                 chat_messages.append(message.to_base_message())
 
-        # Check if bypass is enabled
-        bypass_enabled = config.get("bypass_agentic_workflow")
+        # Use the agentic workflow with chat request tools
+        logging.info("Executing agentic workflow")
         
-        if bypass_enabled:
-            logging.info("Bypass enabled - calling LLM directly")
-            
-            # Check if tools are provided in the request
-            if chat_request.tools:
-                logging.info(f"Tools provided in request: {len(chat_request.tools)} tools")
-                
-                # Convert tools using helper function
-                tools_for_binding = convert_tools_for_binding(chat_request.tools)
-                
-                # Bind tools to LLM
-                try:
-                    llm_with_tools = current_llm.llm.bind_tools(
-                        tools=tools_for_binding,
-                        tool_choice=chat_request.tool_choice or "auto"
-                    )
-                    logging.info("Tools bound to LLM successfully")
-                    
-                    # Call LLM with tools
-                    llm_response = llm_with_tools.invoke(chat_messages)
-                    
-                    # Check if response has tool calls
-                    has_tool_calls = hasattr(llm_response, 'tool_calls') and len(llm_response.tool_calls) > 0
-                    logging.info(f"LLM response received with tool calls: {has_tool_calls}")
-                    
-                    if has_tool_calls:
-                        logging.info(f"Tool calls: {llm_response.tool_calls}")
-                    
-                    # Store the full response for proper handling below
-                    final_response = llm_response
-                except Exception as e:
-                    logging.error(f"Error binding or invoking tools: {e}")
-                    raise
-            else:
-                logging.info("No tools provided - calling LLM without tools")
-                # Call LLM directly without tools
-                llm_response = current_llm.llm.invoke(chat_messages)
-                final_response = llm_response
-        else:
-            # Use the normal agentic workflow with chat request tools
-            logging.info("Executing agentic workflow")
-            
-            # Convert tools if provided
-            chat_request_tools = None
-            if chat_request.tools:
-                logging.info(f"Tools provided in request for agentic workflow: {len(chat_request.tools)} tools")
-                chat_request_tools = convert_tools_for_binding(chat_request.tools)
-            
-            final_response: str | Any = execute_agentic_graph(
-                chat_messages=chat_messages,
-                skillberry_context=skillberry_context,
-                agent_tools=chat_request_tools
-            )
+        # Convert tools if provided
+        chat_request_tools = None
+        if chat_request.tools:
+            logging.info(f"Tools provided in request for agentic workflow: {len(chat_request.tools)} tools")
+            chat_request_tools = convert_tools_for_binding(chat_request.tools)
+        
+        final_response: str | Any = execute_agentic_graph(
+            chat_messages=chat_messages,
+            skillberry_context=skillberry_context,
+            agent_tools=chat_request_tools
+        )
         
         if final_response is None:
             logging.error("execute_agentic_graph returned None")
@@ -276,11 +232,7 @@ def api_chat_completion(chat_request: ChatRequest, request: Request):
             )
 
         # Handle response using helper function
-        # Bypass mode returns AIMessage, agentic workflow returns string
-        response_data = build_response_with_tool_calls(
-            final_response,
-            bypass_mode=bypass_enabled
-        )
+        response_data = build_response_with_tool_calls(final_response)
         message_dict = response_data["message"]
         finish_reason = response_data["finish_reason"]
 
