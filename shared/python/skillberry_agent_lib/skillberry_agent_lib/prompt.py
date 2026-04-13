@@ -60,24 +60,28 @@ def build_chat_messages(
     mcp_port: int,
     mcp_server_name: str,
     skillberry_context: dict,
-    mcp_prompts_position: str = 'prefix'
+    mcp_prompts_position: str = 'postfix'
 ) -> list:
     """Build chat messages with MCP prompts injection.
     
-    This function directly manipulates the chat_history list by inserting
-    MCP prompts as system messages at the configured position (prefix or postfix).
+    This function injects MCP prompts at the configured position relative to
+    system messages already present in the chat history.
+    
+    IMPORTANT: This function expects chat_history to contain LangChain message types
+    (HumanMessage, AIMessage, SystemMessage, ToolMessage from langchain_core.messages).
     
     Args:
-        chat_history: List of chat messages (will be modified in-place)
+        chat_history: List of LangChain BaseMessage objects (will be modified in-place)
         mcp_port: Port number of the MCP server
         mcp_server_name: Name of the MCP server
         skillberry_context: Context dictionary
-        mcp_prompts_position: Where to insert MCP prompts relative to chat_history.
-                            Valid values: 'prefix' (before) or 'postfix' (after).
-                            Defaults to 'prefix'.
+        mcp_prompts_position: Where to insert MCP prompts relative to system messages:
+            - 'prefix': Before all system messages (or at beginning if no system messages exist)
+            - 'postfix': After all system messages (or at beginning if no system messages exist)
+            Default: 'postfix'
         
     Returns:
-        list: Modified chat_history with MCP prompts inserted as system messages
+        list: Modified chat_history with MCP prompts inserted (LangChain BaseMessage objects)
     """
     from langchain_core.messages import SystemMessage
     
@@ -98,13 +102,33 @@ def build_chat_messages(
     # Create system message with MCP prompts
     mcp_system_message = SystemMessage(content=mcp_prompts_text)
     
-    # Insert at the appropriate position
+    # Find system messages in chat_history
+    first_system_idx = None
+    last_system_idx = None
+    for idx, msg in enumerate(chat_history):
+        if isinstance(msg, SystemMessage):
+            if first_system_idx is None:
+                first_system_idx = idx
+            last_system_idx = idx
+    
+    # Determine insertion position based on mcp_prompts_position
     if mcp_prompts_position == 'prefix':
-        # Insert at the beginning
-        chat_history.insert(0, mcp_system_message)
+        # Insert before first system message, or at beginning if no system messages
+        if first_system_idx is not None:
+            logging.info(f"Inserting MCP prompts before first system message at index {first_system_idx}")
+            chat_history.insert(first_system_idx, mcp_system_message)
+        else:
+            logging.info("No system messages found, inserting MCP prompts at beginning")
+            chat_history.insert(0, mcp_system_message)
+            
     else:  # postfix
-        # Append at the end
-        chat_history.append(mcp_system_message)
+        # Insert after last system message, or at beginning if no system messages
+        if last_system_idx is not None:
+            logging.info(f"Inserting MCP prompts after last system message at index {last_system_idx}")
+            chat_history.insert(last_system_idx + 1, mcp_system_message)
+        else:
+            logging.info("No system messages found, inserting MCP prompts at beginning")
+            chat_history.insert(0, mcp_system_message)
     
     return chat_history
 

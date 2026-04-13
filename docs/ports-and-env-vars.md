@@ -38,17 +38,21 @@ The agent uses a three-tier strategy to resolve which skill to use:
    export SKILL_NAME="airline_booking"
    ```
 
-## Agent Tools Configuration
+## Agent Tools and Prompts Configuration
 
-These environment variables control agent tool behavior.
+These environment variables control agent tool and prompt behavior.
 
-| Variable Name      | Default value | Type    | Description |
-|-------------------|---------------|---------|-------------|
-| USE_AGENT_TOOLS   | true          | boolean | When set to `true`, enables the use of tools provided in chat requests within the agentic workflow. When `false`, tools from requests are ignored. |
+| Variable Name         | Default value | Type    | Description |
+|----------------------|---------------|---------|-------------|
+| USE_AGENT_TOOLS      | true          | boolean | When set to `true`, enables the use of tools provided in chat requests within the agentic workflow. When `false`, tools from requests are ignored. |
+| USE_AGENT_PROMPTS    | true          | boolean | When set to `true`, preserves system messages (agent prompts) from chat requests. When `false`, system messages are filtered out before processing. |
+| MCP_PROMPTS_POSITION | postfix       | string  | Controls where MCP prompts are injected relative to system messages. Accepted values: `prefix` or `postfix`. |
 
 **Accepted Values:**
 - Enable: `true`, `1`, `yes` (case-insensitive)
 - Disable: `false`, `0`, `no` (case-insensitive)
+
+**Note:** Agent prompts are system messages included in the chat request. When enabled, they are preserved according to `USE_AGENT_PROMPTS`. MCP prompts (from the skill server) are injected relative to these agent prompts based on `MCP_PROMPTS_POSITION].
 
 ## Debug and Logging Configuration
 

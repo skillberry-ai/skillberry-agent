@@ -42,11 +42,6 @@ CONFIG_STRUCTURE = {
         "default": 0,
         "label": "The LLM model temperature: ",
     },
-    "mcp_prompts_position": {
-        "type": "str",
-        "default": "prefix",
-        "label": "MCP prompts position relative to chat history ('prefix' or 'postfix'): ",
-    },
     "tools_react_agent": {
         "type": "group",
         "label": "Tool calling React agent",

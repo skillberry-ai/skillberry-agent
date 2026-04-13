@@ -5,6 +5,7 @@ import os
 from typing import Any, Dict
 
 # Third-party imports
+from langchain_core.messages import SystemMessage
 from langchain_core.tools import StructuredTool
 from pydantic import create_model, Field
 
@@ -110,9 +111,11 @@ def execute_agentic_graph(chat_messages: list, skillberry_context: dict, agent_t
         SKILL_NAME: Skill name to resolve (optional, medium priority)
         ENABLE_THINK_LOGS: Include thinking logs in response (default: false)
         USE_AGENT_TOOLS: Enable/disable agent tools from chat request (default: true)
-    
-    Configuration:
-        mcp_prompts_position: Position of MCP prompts - 'prefix' or 'postfix' (default: prefix)
+        USE_AGENT_PROMPTS: Enable/disable agent prompts (system messages) from chat request (default: true)
+        MCP_PROMPTS_POSITION: Position of MCP prompts relative to system messages:
+            - 'prefix': Before system messages
+            - 'postfix': After system messages
+            Default: postfix
     
     This function orchestrates the complete agentic workflow:
     1. Resolve skill UUID using multiple strategies
@@ -133,9 +136,10 @@ def execute_agentic_graph(chat_messages: list, skillberry_context: dict, agent_t
     Use the disconnect() function to clean up the server when the session ends.
     
     Parameters:
-        chat_messages: List of chat messages providing conversation context
+        chat_messages: List of chat messages providing conversation context.
+                      May include agent prompts (system messages) that will be filtered based on USE_AGENT_PROMPTS.
         skillberry_context: Context dictionary containing env_id and other metadata (must not be None)
-        chat_request_tools: Optional list of chat request tools in OpenAI format to bind alongside MCP tools
+        agent_tools: Optional list of chat request tools in OpenAI format to bind alongside MCP tools
     
     Returns:
         str: The final AI response content
@@ -150,21 +154,47 @@ def execute_agentic_graph(chat_messages: list, skillberry_context: dict, agent_t
     logging.info(f"=======>>> execute_agentic_graph started <<<=======")
     thinking_log = ""
     
-    # Check if think logs should be included in response
-    enable_think_logs = os.environ.get('ENABLE_THINK_LOGS', 'false').lower() in ('true', '1', 'yes')
-    logging.info(f"Think logs enabled: {enable_think_logs}")
-
+    # Read environment variables
     env_skill_uuid = os.environ.get('SKILL_UUID')
     env_skill_name = os.environ.get('SKILL_NAME')
+    env_enable_think_logs = os.environ.get('ENABLE_THINK_LOGS', 'false')
+    env_use_agent_tools = os.environ.get('USE_AGENT_TOOLS', 'true')
+    env_use_agent_prompts = os.environ.get('USE_AGENT_PROMPTS', 'true')
+    env_mcp_prompts_position = os.environ.get('MCP_PROMPTS_POSITION', 'postfix')
+    
+    # Log environment variables
+    logging.info("=" * 80)
+    logging.info("[ENVIRONMENT VARIABLES]")
+    logging.info(
+        f"SKILL_UUID={env_skill_uuid}, SKILL_NAME={env_skill_name}, ENABLE_THINK_LOGS={env_enable_think_logs}"
+        f" USE_AGENT_TOOLS={env_use_agent_tools}, USE_AGENT_PROMPTS={env_use_agent_prompts}"
+        f" MCP_PROMPTS_POSITION={env_mcp_prompts_position}"
+    )
+    logging.info("=" * 80)
+    
+    # Parse boolean environment variables
+    enable_think_logs = env_enable_think_logs.lower() in ('true', '1', 'yes')
+    use_agent_tools = env_use_agent_tools.lower() in ('true', '1', 'yes')
+    use_agent_prompts = env_use_agent_prompts.lower() in ('true', '1', 'yes')
     
     # Check if agent tools should be included
-    use_agent_tools = os.environ.get('USE_AGENT_TOOLS', 'true').lower() in ('true', '1', 'yes')
     if not use_agent_tools and agent_tools:
         logging.info(f"Agent tools disabled by USE_AGENT_TOOLS environment variable - ignoring tools from request")
         agent_tools = None
-    logging.info(f"Use agent tools: {use_agent_tools}")
     
-    logging.info(f"Environment: SKILL_UUID={env_skill_uuid}, SKILL_NAME={env_skill_name}")
+    # Check if agent prompts should be included
+    if not use_agent_prompts:
+        # Filter out system messages (agent prompts) from chat_messages
+        original_count = len(chat_messages)
+        chat_messages = [msg for msg in chat_messages if not isinstance(msg, SystemMessage)]
+        filtered_count = original_count - len(chat_messages)
+        if filtered_count > 0:
+            logging.info(f"Agent prompts disabled by USE_AGENT_PROMPTS environment variable - filtered out {filtered_count} system messages")
+    else:
+        # Count agent prompts for logging
+        agent_prompt_count = sum(1 for msg in chat_messages if isinstance(msg, SystemMessage))
+        if agent_prompt_count > 0:
+            logging.info(f"Agent prompts enabled - preserving {agent_prompt_count} system messages in chat_messages")
     
     # 1. Resolve skill UUID using multiple strategies
     resolved_skill_uuid = resolve_skill_uuid(
@@ -260,7 +290,7 @@ def execute_agentic_graph(chat_messages: list, skillberry_context: dict, agent_t
 
     # 6. Prepare chat messages with MCP prompts injection
     logging.info(f"=====> Preparing chat messages with MCP prompts injection")
-    mcp_prompts_position = str(_config.get('mcp_prompts_position', 'prefix'))
+    mcp_prompts_position = env_mcp_prompts_position
     llm_messages = build_chat_messages(
         chat_history=chat_messages,
         mcp_port=port,
