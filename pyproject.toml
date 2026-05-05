@@ -23,7 +23,7 @@ dependencies = [
     "Flask>=3.1.0",
     "ipython>=8.12.3",
     "skillberry-agent-lib",
-    "skillberry-store-sdk @ git+ssh://git@github.ibm.com/skillberry/skillberry-store.git#subdirectory=client/python/skillberry_store_sdk",
+    "skillberry-store-sdk @ git+https://github.com/skillberry-ai/skillberry-store.git#subdirectory=client/python/skillberry_store_sdk",
    "openapi-generator-cli[jdk4py]==7.20.0",
     "toml-cli"
 ]
