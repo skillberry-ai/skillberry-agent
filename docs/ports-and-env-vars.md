@@ -4,16 +4,66 @@ This document lists the environment variables that can be used to configure the 
 
 ## LLM Provider Configuration
 
-These environment variables configure the LLM provider used by the agent.
+The agent uses the `llm-client` library which supports multiple LLM providers. Configure the provider using environment variables.
 
-| Service Name              | Default value     | Environment Variables Override | Notes
-|---------------------------|-------------------|--------------------------------|-----------------------------------------------------------------------------------|
-| RITS service API key      | None              | RITS_API_KEY                   | To use IBM RITS service as LLM Provider (https://github.ibm.com/rits/rits/)       |
-| Watsonx API key           | None              | WATSONX_API_KEY                | To use IBM WatsonX service as LLM Provider (https://www.ibm.com/products/watsonx) |
-| Watsonx Project ID        | None              | WATSONX_PROJECT_ID             | To use IBM WatsonX service as LLM Provider (https://www.ibm.com/products/watsonx) |
-| Watsonx URL               | None              | WATSONX_URL                    | To use IBM WatsonX service as LLM Provider (https://www.ibm.com/products/watsonx) |
+### Provider Selection
 
-> These values are mandatory to be set by setting the corresponding environment variables in your deployment configuration.
+Set the provider name in your configuration (e.g., `litellm.rits.output_val`, `watsonx.output_val`). The provider determines which environment variables are required.
+
+### Common Environment Variables
+
+| Variable Name              | Default value | Required For | Description |
+|----------------------------|---------------|--------------|-------------|
+| RITS_API_KEY               | None          | RITS providers | API key for IBM RITS service (https://github.ibm.com/rits/rits/) |
+| IBM_THIRD_PARTY_API_KEY    | None          | IBM providers | API key for IBM third-party services (fallback for RITS_API_KEY) |
+| WATSONX_APIKEY             | None          | WatsonX providers | API key for IBM WatsonX service (https://www.ibm.com/products/watsonx) |
+| WATSONX_PROJECT_ID         | None          | WatsonX providers | Project ID for IBM WatsonX service |
+| WATSONX_URL                | None          | WatsonX providers | Endpoint URL for IBM WatsonX service |
+
+### Provider-Specific Environment Variables
+
+#### RITS Providers (`litellm.rits`, `litellm.rits.output_val`)
+- **Required:** `RITS_API_KEY`
+- **Optional:** `RITS_API_URL` - Custom RITS API endpoint
+
+#### IBM LiteLLM Providers (`litellm.ibm`, `litellm.ibm.output_val`)
+- **Required:** `IBM_THIRD_PARTY_API_KEY`
+- **Optional:** `IBM_LITELLM_API_BASE` - Custom IBM LiteLLM endpoint
+
+#### WatsonX Providers (`watsonx`, `watsonx.output_val`, `litellm.watsonx`, `litellm.watsonx.output_val`)
+- **Required:** `WATSONX_APIKEY`, `WATSONX_PROJECT_ID`, `WATSONX_URL`
+
+#### Ollama Providers (`litellm.ollama`, `litellm.ollama.output_val`)
+- **Optional:** `OLLAMA_API_URL` - Ollama endpoint (default: `http://localhost:11434`)
+
+#### OpenAI/Azure Providers (`openai.sync`, `azure.sync`, etc.)
+- **Required:** Provider-specific API keys (e.g., `OPENAI_API_KEY`, `AZURE_OPENAI_API_KEY`)
+- **Optional:** Custom endpoints via configuration
+
+### Supported Providers
+
+The following providers are available through llm-client:
+
+| Provider Name | Description | Structured Output |
+|---------------|-------------|-------------------|
+| `litellm.rits` | RITS proxy via LiteLLM | No |
+| `litellm.rits.output_val` | RITS proxy with validation | Yes |
+| `litellm.ibm` | IBM third-party proxy | No |
+| `litellm.ibm.output_val` | IBM proxy with validation | Yes |
+| `litellm.ollama` | Ollama local models | No |
+| `litellm.ollama.output_val` | Ollama with validation | Yes |
+| `litellm.watsonx` | WatsonX via LiteLLM | No |
+| `litellm.watsonx.output_val` | WatsonX via LiteLLM with validation | Yes |
+| `watsonx` | Direct WatsonX | No |
+| `watsonx.output_val` | Direct WatsonX with validation | Yes |
+| `openai.sync` | OpenAI sync client | No |
+| `openai.sync.output_val` | OpenAI with validation | Yes |
+| `azure.sync` | Azure OpenAI sync | No |
+| `azure.sync.output_val` | Azure OpenAI with validation | Yes |
+
+**Note:** Providers with `.output_val` suffix support structured output validation with automatic retry on validation failures.
+
+> Environment variables must be set in your deployment configuration. The agent will fail to start if required variables for the selected provider are missing.
 
 ## Skill Configuration
 

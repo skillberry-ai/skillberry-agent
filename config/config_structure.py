@@ -9,33 +9,29 @@ CONFIG_STRUCTURE = {
     },
     "llm_provider": {
         "type": "str",
-        "default": "rits_openai",
-        "label": "LLM provider ('rits_openai' or 'watsonx')",
+        "default": "litellm.ibm.output_val",
+        # Any provider registered in llm-client works here. Examples:
+        #   'litellm.ibm.output_val'   - IBM LiteLLM proxy (default, uses IBM_THIRD_PARTY_API_KEY)
+        #   'litellm.rits.output_val'  - RITS direct (uses RITS_API_KEY, RITS_API_URL)
+        #   'litellm'                  - Plain LiteLLM (model & api_base fully manual)
+        #   'openai.sync.output_val'   - OpenAI or compatible (uses OPENAI_API_KEY)
+        #   'watsonx'                  - IBM WatsonX (uses WX_URL, WX_API_KEY, WX_PROJECT_ID)
+        "label": "LLM provider name (any llm-client registered provider)",
     },
-    "use_rits_proxy": {
-        "type": "bool",
-        "default": True,
-        "label": "Should use the rits proxy (or connect to rits directly): ",
-    },
-    "rits_api_url": {
+    "llm_api_base": {
         "type": "str",
-        "default": "https://inference-3scale-apicast-production.apps.rits.fmaas.res.ibm.com",
-        "label": "IBM rits service API URL (for direct connection)",
-    },
-    "rits_proxy_api_url": {
-        "type": "str",
-        "default": "http://skillberry-1.vpc.cloud9.ibm.com:4000",
-        "label": "IBM rits proxy API URL (for proxy connection)",
+        "default": "http://skillberry-1.vpc.cloud9.ibm.com:4000/",
+        # The base URL for all LLM API calls.
+        # Override per-provider with env vars if needed (e.g. IBM_LITELLM_API_BASE, RITS_API_URL).
+        # Examples:
+        #   IBM LiteLLM proxy: http://skillberry-1.vpc.cloud9.ibm.com:4000/
+        #   IBM LiteLLM ETE:   https://ete-litellm.bx.cloud9.ibm.com
+        "label": "Base URL for the LLM API",
     },
     "selected_model": {
         "type": "str",
-        "default": "openai/gpt-oss-120b",
+        "default": "rits/openai/gpt-oss-120b",
         "label": "LLM model to be used by the agent: ",
-    },
-    "model_url": {
-        "type": "str",
-        "default": "",
-        "label": "url of LLM model to be used by the agent (should be postfixed with /v1): ",
     },
     "temperature": {
         "type": "float",
