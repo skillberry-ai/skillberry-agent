@@ -4,18 +4,17 @@ This document lists the environment variables that can be used to configure the 
 
 ## LLM Provider Configuration
 
-The agent uses the `llm-client` library which supports multiple LLM providers. Configure the provider using environment variables.
+The agent uses the [`llm-switchboard`](https://github.com/skillberry-ai/llm-switchboard) library which supports multiple LLM providers.
 
 ### Provider Selection
 
-Set the provider name in your configuration (e.g., `litellm.rits.output_val`, `watsonx.output_val`). The provider determines which environment variables are required.
+Set the provider name in your configuration (e.g., `litellm.ibm.output_val`, `litellm.rits.output_val`, `watsonx.output_val`). The provider determines which environment variables are required.
 
 ### Common Environment Variables
 
 | Variable Name              | Default value | Required For | Description |
 |----------------------------|---------------|--------------|-------------|
-| RITS_API_KEY               | None          | RITS providers | API key for IBM RITS service (https://github.ibm.com/rits/rits/) |
-| IBM_THIRD_PARTY_API_KEY    | None          | IBM providers | API key for IBM third-party services (fallback for RITS_API_KEY) |
+| RITS_API_KEY               | None          | RITS and IBM providers | API key for IBM RITS service (https://github.ibm.com/rits/rits/) |
 | WATSONX_APIKEY             | None          | WatsonX providers | API key for IBM WatsonX service (https://www.ibm.com/products/watsonx) |
 | WATSONX_PROJECT_ID         | None          | WatsonX providers | Project ID for IBM WatsonX service |
 | WATSONX_URL                | None          | WatsonX providers | Endpoint URL for IBM WatsonX service |
@@ -24,46 +23,33 @@ Set the provider name in your configuration (e.g., `litellm.rits.output_val`, `w
 
 #### RITS Providers (`litellm.rits`, `litellm.rits.output_val`)
 - **Required:** `RITS_API_KEY`
-- **Optional:** `RITS_API_URL` - Custom RITS API endpoint
 
 #### IBM LiteLLM Providers (`litellm.ibm`, `litellm.ibm.output_val`)
-- **Required:** `IBM_THIRD_PARTY_API_KEY`
-- **Optional:** `IBM_LITELLM_API_BASE` - Custom IBM LiteLLM endpoint
+- **Required:** `RITS_API_KEY`
 
-#### WatsonX Providers (`watsonx`, `watsonx.output_val`, `litellm.watsonx`, `litellm.watsonx.output_val`)
+#### WatsonX Providers (`watsonx`, `watsonx.output_val`)
 - **Required:** `WATSONX_APIKEY`, `WATSONX_PROJECT_ID`, `WATSONX_URL`
-
-#### Ollama Providers (`litellm.ollama`, `litellm.ollama.output_val`)
-- **Optional:** `OLLAMA_API_URL` - Ollama endpoint (default: `http://localhost:11434`)
-
-#### OpenAI/Azure Providers (`openai.sync`, `azure.sync`, etc.)
-- **Required:** Provider-specific API keys (e.g., `OPENAI_API_KEY`, `AZURE_OPENAI_API_KEY`)
-- **Optional:** Custom endpoints via configuration
 
 ### Supported Providers
 
-The following providers are available through llm-client:
+The following providers are currently supported:
 
 | Provider Name | Description | Structured Output |
 |---------------|-------------|-------------------|
+| `litellm.ibm` | IBM LiteLLM proxy | No |
+| `litellm.ibm.output_val` | IBM proxy with validation | Yes |
 | `litellm.rits` | RITS proxy via LiteLLM | No |
 | `litellm.rits.output_val` | RITS proxy with validation | Yes |
-| `litellm.ibm` | IBM third-party proxy | No |
-| `litellm.ibm.output_val` | IBM proxy with validation | Yes |
-| `litellm.ollama` | Ollama local models | No |
-| `litellm.ollama.output_val` | Ollama with validation | Yes |
-| `litellm.watsonx` | WatsonX via LiteLLM | No |
-| `litellm.watsonx.output_val` | WatsonX via LiteLLM with validation | Yes |
 | `watsonx` | Direct WatsonX | No |
 | `watsonx.output_val` | Direct WatsonX with validation | Yes |
-| `openai.sync` | OpenAI sync client | No |
-| `openai.sync.output_val` | OpenAI with validation | Yes |
-| `azure.sync` | Azure OpenAI sync | No |
-| `azure.sync.output_val` | Azure OpenAI with validation | Yes |
 
-**Note:** Providers with `.output_val` suffix support structured output validation with automatic retry on validation failures.
-
-> Environment variables must be set in your deployment configuration. The agent will fail to start if required variables for the selected provider are missing.
+**Notes:**
+- The "Provider API Base URL" configuration parameter specifies the base URL for provider API calls. This parameter maps to different provider-specific parameters depending on the selected provider:
+  - **For `litellm.ibm` providers:** Maps to `api_base` parameter (e.g. `http://skillberry-1.vpc.cloud9.ibm.com:4000/`)
+  - **For `litellm.rits` providers:** Maps to `api_url` parameter (e.g. `https://inference-3scale-apicast-production.apps.rits.fmaas.res.ibm.com`)
+  - **For `watsonx` providers:** Not used (uses `WATSONX_URL` environment variable instead)
+- Providers with `.output_val` suffix support structured output validation with automatic retry on validation failures.
+- Environment variables must be set in your deployment configuration. The agent will fail to start if required variables for the selected provider are missing.
 
 ## Skill Configuration
 

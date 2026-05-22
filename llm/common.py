@@ -23,10 +23,8 @@ class LLMProviderType(StrEnum):
     Enum representing supported LLM providers.
     """
 
-    LITELLM = "litellm"
     LITELLM_IBM = "litellm.ibm"
     LITELLM_RITS = "litellm.rits"
-    LITELLM_OUTPUT_VAL = "litellm.output_val"
     LITELLM_IBM_OUTPUT_VAL = "litellm.ibm.output_val"
     LITELLM_RITS_OUTPUT_VAL = "litellm.rits.output_val"
     WATSONX = "watsonx"
@@ -435,7 +433,7 @@ class LLMAdapterError:
 class LLMProvider:
     def __init__(
         self,
-        llm_provider_type_str: str,
+        llm_provider_name: str,
         llm_model: str,
         llm_temperature: float,
         llm_role: str,
@@ -446,7 +444,7 @@ class LLMProvider:
         Initialize an LLM provider instance using llm-switchboard.
 
         Parameters:
-            llm_provider_type_str (str): llm-switchboard provider name
+            llm_provider_name (str): llm-switchboard provider name
                 (e.g. 'litellm.rits.output_val', 'litellm.ibm.output_val',
                 'litellm', 'openai.sync.output_val', 'watsonx')
             llm_model (str): LLM model name
@@ -455,7 +453,7 @@ class LLMProvider:
             llm_timeout (int): Request timeout in seconds
             llm_api_base (str): Base URL for the LLM API endpoint
         """
-        self.llm_provider_name = llm_provider_type_str
+        self.llm_provider_name = llm_provider_name
         self.llm_temperature = llm_temperature
         self.llm_model = llm_model
         self.llm_role = llm_role
@@ -470,7 +468,7 @@ class LLMProvider:
         # Validate provider type
         try:
             self.llm_provider_type = LLMProviderType.from_llm_provider_str(
-                llm_provider_type_str
+                llm_provider_name
             )
         except Exception as e:
             error_msg = f"Failed to detect LLM platform: {str(e)}"
@@ -586,15 +584,15 @@ class LLMProvider:
 
 
 # Initialize current_llm with configuration
-llm_provider_type_str = config.get("llm_provider")
-llm_coder_model = config.get("selected_model")
-llm_coder_temperature = config.get("temperature")
-llm_api_base = config.get("llm_api_base", "")
+llm_provider_name = config.get("provider_name")
+llm_model = config.get("model_name")
+llm_temperature = config.get("temperature")
+llm_api_base = config.get("provider_api_base", "")
 
 current_llm = LLMProvider(
-    llm_provider_type_str=llm_provider_type_str,
-    llm_model=llm_coder_model,
-    llm_temperature=llm_coder_temperature,
+    llm_provider_name=llm_provider_name,
+    llm_model=llm_model,
+    llm_temperature=llm_temperature,
     llm_role="",
     llm_api_base=llm_api_base,
 )

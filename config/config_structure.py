@@ -7,31 +7,20 @@ CONFIG_STRUCTURE = {
         "default": "http://127.0.0.1:8000",
         "label": "The tools service url: ",
     },
-    "llm_provider": {
+    "provider_name": {
         "type": "str",
         "default": "litellm.ibm.output_val",
-        # Any provider registered in llm-client works here. Examples:
-        #   'litellm.ibm.output_val'   - IBM LiteLLM proxy (default, uses IBM_THIRD_PARTY_API_KEY)
-        #   'litellm.rits.output_val'  - RITS direct (uses RITS_API_KEY, RITS_API_URL)
-        #   'litellm'                  - Plain LiteLLM (model & api_base fully manual)
-        #   'openai.sync.output_val'   - OpenAI or compatible (uses OPENAI_API_KEY)
-        #   'watsonx'                  - IBM WatsonX (uses WX_URL, WX_API_KEY, WX_PROJECT_ID)
-        "label": "LLM provider name (any llm-client registered provider)",
+        "label": "LLM provider (supported llm-switchboard providers: 'litellm.ibm', 'litellm.ibm.output_val', 'litellm.rits', 'litellm.rits.output_val', 'watsonx', 'watsonx.output_val')",
     },
-    "llm_api_base": {
+    "provider_api_base": {
         "type": "str",
         "default": "http://skillberry-1.vpc.cloud9.ibm.com:4000/",
-        # The base URL for all LLM API calls.
-        # Override per-provider with env vars if needed (e.g. IBM_LITELLM_API_BASE, RITS_API_URL).
-        # Examples:
-        #   IBM LiteLLM proxy: http://skillberry-1.vpc.cloud9.ibm.com:4000/
-        #   IBM LiteLLM ETE:   https://ete-litellm.bx.cloud9.ibm.com
-        "label": "Base URL for the LLM API",
+        "label": "Provider API base URL",
     },
-    "selected_model": {
+    "model_name": {
         "type": "str",
         "default": "rits/openai/gpt-oss-120b",
-        "label": "LLM model to be used by the agent: ",
+        "label": "Model name to use with the provider",
     },
     "temperature": {
         "type": "float",
