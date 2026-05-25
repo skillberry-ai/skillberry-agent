@@ -9,17 +9,17 @@ CONFIG_STRUCTURE = {
     },
     "provider_name": {
         "type": "str",
-        "default": "litellm.ibm.output_val",
+        "default": "litellm.rits.output_val",
         "label": "LLM provider (supported llm-switchboard providers: 'litellm.ibm', 'litellm.ibm.output_val', 'litellm.rits', 'litellm.rits.output_val', 'watsonx', 'watsonx.output_val')",
     },
     "provider_api_base": {
         "type": "str",
-        "default": "http://skillberry-1.vpc.cloud9.ibm.com:4000/",
+        "default": "https://inference-3scale-apicast-production.apps.rits.fmaas.res.ibm.com",
         "label": "Provider API base URL",
     },
     "model_name": {
         "type": "str",
-        "default": "rits/openai/gpt-oss-120b",
+        "default": "openai/gpt-oss-120b",
         "label": "Model name to use with the provider",
     },
     "temperature": {

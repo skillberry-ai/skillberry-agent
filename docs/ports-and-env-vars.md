@@ -102,3 +102,97 @@ These environment variables control debug output and logging behavior.
 - Enable: `true`, `1`, `yes` (case-insensitive)
 - Disable: `false`, `0`, `no`, or unset (case-insensitive)
 
+
+
+## Configuration via Environment Variables
+
+The Skillberry Proxy Agent supports comprehensive configuration through environment variables. All configuration attributes defined in `config/config_structure.py` can be overridden using environment variables.
+
+### Environment Variable Naming Convention
+
+Environment variables follow a consistent naming pattern:
+- **Prefix:** `SPA_` (Skillberry Proxy Agent)
+- **Nested attributes:** Use double underscore `__` to separate levels
+- **Case:** UPPERCASE
+
+**Examples:**
+- `tools_service_base_url` → `SPA_TOOLS_SERVICE_BASE_URL`
+- `advanced/debug` → `SPA_ADVANCED__DEBUG`
+- `tools_react_agent/recursion_limit` → `SPA_TOOLS_REACT_AGENT__RECURSION_LIMIT`
+
+### Configuration Priority
+
+Configuration values are resolved in the following order (highest to lowest priority):
+
+1. **System environment variables** - Set in your shell or deployment environment
+2. **`.env` file** - Local configuration file (not committed to git)
+3. **Config file** - `/tmp/tool-agent-config.json` or specified config file
+4. **Code defaults** - Default values defined in `config_structure.py`
+
+### Using .env Files
+
+For local development, you can use a `.env` file to set environment variables:
+
+1. Copy the example file:
+   ```bash
+   cp .env.example .env
+   ```
+
+2. Edit `.env` with your values:
+   ```bash
+   SPA_PROVIDER_NAME=litellm.rits.output_val
+   SPA_MODEL_NAME=openai/gpt-oss-120b
+   SPA_ADVANCED__DEBUG=false
+   ```
+
+3. The `.env` file is automatically loaded on startup
+
+**Important:**
+- `.env` files are excluded from git (via `.gitignore`)
+- System environment variables override `.env` file values
+- Never commit `.env` files with secrets
+
+### Automatic Configuration Discovery
+
+When you add new attributes to `config_structure.py`, they automatically support environment variable configuration:
+
+1. Add the attribute to `CONFIG_STRUCTURE` in `config/config_structure.py`
+2. The corresponding environment variable name is automatically generated
+3. No additional code changes needed
+
+**Example:**
+```python
+# In config_structure.py
+"new_feature": {
+    "type": "group",
+    "children": {
+        "enabled": {"type": "bool", "default": False},
+        "timeout": {"type": "int", "default": 30}
+    }
+}
+```
+
+Automatically supports:
+- `SPA_NEW_FEATURE__ENABLED=true`
+- `SPA_NEW_FEATURE__TIMEOUT=60`
+
+### Type Conversion
+
+Environment variables are automatically converted to the correct type:
+
+- **Boolean:** `true`, `false`, `1`, `0`, `yes`, `no`, `on`, `off`, `enabled`, `disabled` (case-insensitive)
+- **Integer:** Numeric strings (e.g., `"42"` → `42`)
+- **Float:** Decimal strings (e.g., `"3.14"` → `3.14`)
+- **String:** Used as-is
+- **List:** Comma-separated values (e.g., `"a,b,c"` → `["a", "b", "c"]`)
+- **Dict:** JSON strings (e.g., `'{"key": "value"}'`)
+
+### Configuration UI Interaction
+
+When using the Configuration UI:
+- Changes made via UI take effect immediately in the current session
+- Changes are saved to the config file
+- On restart, environment variables override the config file again
+- This allows temporary testing while maintaining env var control
+
+For complete examples and all available configuration options, see `.env.example` in the project root.
