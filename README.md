@@ -20,7 +20,7 @@ A proxy-agent service that orchestrates intelligent interactions between custome
 
 ## Quickstart 🚀
 
-❗Ensure that the [skillberry-store](https://github.ibm.com/skillberry/skillberry-store) is running.
+❗Ensure that the [skillberry-store](https://github.com/skillberry-ai/skillberry-store) is running.
 
 ### Run the service with Docker or Podman 🐳
 
@@ -54,7 +54,7 @@ export WATSONX_URL=https://us-south.ml.cloud.ibm.com
 
 ```bash
 cd ~
-git clone git@github.ibm.com:skillberry/skillberry-agent.git
+git clone git@github.com:skillberry-ai/skillberry-agent.git
 cd skillberry-agent
 make run
 ```

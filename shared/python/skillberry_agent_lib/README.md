@@ -767,7 +767,7 @@ workflow = create_react_tools_workflow(
 
 ```bash
 # Clone the repository
-git clone https://github.ibm.com/skillberry/skillberry-agent.git
+git clone https://github.com/skillberry-ai/skillberry-agent.git
 cd skillberry-agent/shared/python/skillberry_agent_lib
 
 # Create and activate virtual environment

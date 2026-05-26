@@ -14,7 +14,7 @@ Set the provider name in your configuration (e.g., `litellm.ibm.output_val`, `li
 
 | Variable Name              | Default value | Required For | Description |
 |----------------------------|---------------|--------------|-------------|
-| RITS_API_KEY               | None          | RITS and IBM providers | API key for IBM RITS service (https://github.ibm.com/rits/rits/) |
+| RITS_API_KEY               | None          | RITS and IBM providers | API key for IBM RITS service |
 | WATSONX_APIKEY             | None          | WatsonX providers | API key for IBM WatsonX service (https://www.ibm.com/products/watsonx) |
 | WATSONX_PROJECT_ID         | None          | WatsonX providers | Project ID for IBM WatsonX service |
 | WATSONX_URL                | None          | WatsonX providers | Endpoint URL for IBM WatsonX service |
