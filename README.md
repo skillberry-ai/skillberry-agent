@@ -36,19 +36,65 @@ Open a browser against `http://127.0.0.1:7000/docs`.
 
 ## Prerequisites 🛠️
 
-- Export or use `.env` file to set `RITS_API_KEY` for accessing LLMs via RITS:
+### LLM Provider Configuration
 
+The agent supports multiple LLM providers through environment variables.
+
+**Using .env file (Recommended for local development):**
+
+1. Copy the example file:
+   ```bash
+   cp .env.example .env
+   ```
+
+2. Edit `.env` with your credentials and configuration:
+   ```bash
+   # Choose your provider
+   SPA_PROVIDER_NAME=openai.sync
+   SPA_MODEL_NAME=gpt-4
+   
+   # Set provider credentials
+   OPENAI_API_KEY=sk-********************************
+   ```
+
+3. The `.env` file is automatically loaded on startup
+
+**Or export environment variables directly:**
+
+#### OpenAI (Recommended for getting started)
+```bash
+export OPENAI_API_KEY=sk-********************************
+export SPA_PROVIDER_NAME=openai.sync
+export SPA_MODEL_NAME=gpt-4
+```
+
+#### Anthropic Claude
+```bash
+export ANTHROPIC_API_KEY=sk-ant-********************************
+export SPA_PROVIDER_NAME=litellm
+export SPA_MODEL_NAME=anthropic/claude-3-sonnet
+```
+
+#### IBM RITS (Internal)
 ```bash
 export RITS_API_KEY=********************************
+export RITS_API_URL=https://inference-3scale-apicast-production.apps.rits.fmaas.res.ibm.com
+export SPA_PROVIDER_NAME=litellm.rits.output_val
+export SPA_MODEL_NAME=openai/gpt-oss-120b
 ```
 
-- Alternatively, set `WATSONX_APIKEY`, `WATSONX_PROJECT_ID` and `WATSONX_URL` for accessing LLMs via WatsonX
-
+#### IBM WatsonX (Internal)
 ```bash
-export WATSONX_APIKEY=********************************
-export WATSONX_PROJECT_ID=********************************
-export WATSONX_URL=https://us-south.ml.cloud.ibm.com
+export WX_API_KEY=********************************
+export WX_PROJECT_ID=********************************
+export WX_URL=https://us-south.ml.cloud.ibm.com
+export SPA_PROVIDER_NAME=watsonx
+export SPA_MODEL_NAME=openai/gpt-oss-120b
 ```
+
+**Note:** You can also configure provider and model via the Configuration UI at `http://localhost:7001`
+
+For more providers and detailed configuration, see [docs/ports-and-env-vars.md](docs/ports-and-env-vars.md) and [.env.example](.env.example).
 
 ## Local Setup and Running the Service 🧰
 

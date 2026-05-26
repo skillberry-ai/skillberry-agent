@@ -8,48 +8,38 @@ The agent uses the [`llm-switchboard`](https://github.com/skillberry-ai/llm-swit
 
 ### Provider Selection
 
-Set the provider name in your configuration (e.g., `litellm.ibm.output_val`, `litellm.rits.output_val`, `watsonx.output_val`). The provider determines which environment variables are required.
+Set the provider name in your configuration (e.g., `openai.sync`, `litellm.rits.output_val`, `watsonx.output_val`). The provider determines which environment variables are required.
 
-### Common Environment Variables
+For detailed information about supported providers and their environment variables, see the [llm-switchboard documentation](https://github.com/skillberry-ai/llm-switchboard#providers).
 
-| Variable Name              | Default value | Required For | Description |
-|----------------------------|---------------|--------------|-------------|
-| RITS_API_KEY               | None          | RITS and IBM providers | API key for IBM RITS service |
-| WATSONX_APIKEY             | None          | WatsonX providers | API key for IBM WatsonX service (https://www.ibm.com/products/watsonx) |
-| WATSONX_PROJECT_ID         | None          | WatsonX providers | Project ID for IBM WatsonX service |
-| WATSONX_URL                | None          | WatsonX providers | Endpoint URL for IBM WatsonX service |
+### Quick Reference: Common Providers
 
-### Provider-Specific Environment Variables
+#### OpenAI Providers (`openai.sync`, `openai.sync.output_val`)
+- **Required:** `OPENAI_API_KEY`
+- **Models:** gpt-4, gpt-4-turbo, gpt-3.5-turbo, etc.
+
+#### Anthropic Providers (via LiteLLM: `litellm`)
+- **Required:** `ANTHROPIC_API_KEY`
+- **Models:** claude-3-opus, claude-3-sonnet, claude-3-haiku, etc.
+- **Provider name:** Use `litellm` with model prefix `anthropic/`
 
 #### RITS Providers (`litellm.rits`, `litellm.rits.output_val`)
-- **Required:** `RITS_API_KEY`
+- **Required:** `RITS_API_KEY`, `RITS_API_URL`
+- **Models:** openai/gpt-oss-120b, etc.
 
 #### IBM LiteLLM Providers (`litellm.ibm`, `litellm.ibm.output_val`)
-- **Required:** `RITS_API_KEY`
+- **Required:** `IBM_THIRD_PARTY_API_KEY`, `IBM_LITELLM_API_BASE`
+- **Models:** Various models via IBM's LiteLLM proxy
 
 #### WatsonX Providers (`watsonx`, `watsonx.output_val`)
-- **Required:** `WATSONX_APIKEY`, `WATSONX_PROJECT_ID`, `WATSONX_URL`
-
-### Supported Providers
-
-The following providers are currently supported:
-
-| Provider Name | Description | Structured Output |
-|---------------|-------------|-------------------|
-| `litellm.ibm` | IBM LiteLLM proxy | No |
-| `litellm.ibm.output_val` | IBM proxy with validation | Yes |
-| `litellm.rits` | RITS proxy via LiteLLM | No |
-| `litellm.rits.output_val` | RITS proxy with validation | Yes |
-| `watsonx` | Direct WatsonX | No |
-| `watsonx.output_val` | Direct WatsonX with validation | Yes |
+- **Required:** `WX_API_KEY`, `WX_PROJECT_ID`, `WX_URL`
+- **Optional:** `WX_SPACE_ID`
 
 **Notes:**
-- The "Provider API Base URL" configuration parameter specifies the base URL for provider API calls. This parameter maps to different provider-specific parameters depending on the selected provider:
-  - **For `litellm.ibm` providers:** Maps to `api_base` parameter (e.g. `http://skillberry-1.vpc.cloud9.ibm.com:4000/`)
-  - **For `litellm.rits` providers:** Maps to `api_url` parameter (e.g. `https://inference-3scale-apicast-production.apps.rits.fmaas.res.ibm.com`)
-  - **For `watsonx` providers:** Not used (uses `WATSONX_URL` environment variable instead)
 - Providers with `.output_val` suffix support structured output validation with automatic retry on validation failures.
-- Environment variables must be set in your deployment configuration. The agent will fail to start if required variables for the selected provider are missing.
+- All provider-specific configuration is done via environment variables.
+- The agent will fail to start if required variables for the selected provider are missing.
+- Use the Configuration UI (port 7001) to set provider name and model name.
 
 ## Skill Configuration
 
