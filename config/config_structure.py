@@ -9,12 +9,12 @@ CONFIG_STRUCTURE = {
     },
     "provider_name": {
         "type": "str",
-        "default": "openai.sync",
-        "label": "LLM provider name (e.g., 'openai.sync', 'litellm', 'watsonx'). Provider-specific credentials should be set via environment variables.",
+        "default": "litellm.rits.output_val",
+        "label": "LLM provider name (e.g., 'litellm.rits.output_val', 'openai.sync', 'litellm', 'watsonx'). Provider-specific credentials should be set via environment variables.",
     },
     "model_name": {
         "type": "str",
-        "default": "gpt-4",
+        "default": "openai/gpt-oss-120b",
         "label": "Model name to use with the provider",
     },
     "temperature": {

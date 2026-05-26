@@ -344,7 +344,7 @@ def _build_llm_client_adapter(
     The provider_name can be any name registered in the llm-switchboard registry
     (e.g. 'litellm.rits.output_val', 'litellm.ibm.output_val', 'watsonx',
     'openai.sync.output_val', etc.).  Each provider reads its own env vars
-    automatically (RITS_API_KEY, IBM_THIRD_PARTY_API_KEY, etc.).
+    automatically (RITS_API_KEY, IBM_THIRD_PARTY_API_KEY, OPENAI_API_KEY, etc.).
 
     For the structured client we always use the '.output_val' variant.
     For the simple client we use the base name (without '.output_val').
@@ -454,7 +454,7 @@ class LLMProvider:
 
         Parameters:
             llm_provider_name (str): llm-switchboard provider name
-                Examples: 'openai.sync', 'litellm', 'litellm.ibm', 'litellm.rits',
+                Examples: 'litellm.rits.output_val', 'openai.sync', 'litellm', 'litellm.ibm',
                 'litellm.ollama', 'watsonx'
             llm_model (str): LLM model name
             llm_temperature (float): LLM temperature
@@ -485,9 +485,9 @@ class LLMProvider:
             error_msg = (
                 f"Failed to initialize LLM provider '{self.llm_provider_name}'. "
                 f"Please check your configuration using the Configuration UI and verify:\n"
-                f"  - Provider name is correct (e.g., 'openai.sync', 'litellm', 'watsonx')\n"
+                f"  - Provider name is correct (e.g., 'litellm.rits.output_val', 'openai.sync', 'litellm', 'watsonx')\n"
                 f"  - Required environment variables are set for the provider\n"
-                f"  - Model name '{self.llm_model}' is valid for the provider\n"
+                f"  - Model name '{self.llm_model}' is valid for the provider (e.g., 'openai/gpt-oss-120b' for litellm.rits)\n"
                 f"\nOriginal error: {str(e)}"
             )
             raise LLMInitializationError(
