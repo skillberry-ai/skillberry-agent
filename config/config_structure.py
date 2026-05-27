@@ -10,7 +10,7 @@ CONFIG_STRUCTURE = {
     "provider_name": {
         "type": "str",
         "default": "litellm.rits.output_val",
-        "label": "LLM provider name (e.g., 'litellm.rits.output_val', 'openai.sync', 'litellm', 'watsonx'). Provider-specific credentials should be set via environment variables.",
+        "label": "LLM provider name. Can be any name registered in the llm-switchboard registry. Provider-specific credentials should be set via environment variables.",
     },
     "model_name": {
         "type": "str",

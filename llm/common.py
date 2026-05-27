@@ -342,9 +342,8 @@ def _build_llm_client_adapter(
     Build an LLMClientLangChainAdapter from any llm-switchboard provider name.
 
     The provider_name can be any name registered in the llm-switchboard registry
-    (e.g. 'litellm.rits.output_val', 'litellm.ibm.output_val', 'watsonx',
-    'openai.sync.output_val', etc.).  Each provider reads its own env vars
-    automatically (RITS_API_KEY, IBM_THIRD_PARTY_API_KEY, OPENAI_API_KEY, etc.).
+    (e.g. 'openai.sync.output_val', etc.). Each provider reads its own env vars
+    automatically.
 
     For the structured client we always use the '.output_val' variant.
     For the simple client we use the base name (without '.output_val').
@@ -454,14 +453,10 @@ class LLMProvider:
 
         Parameters:
             llm_provider_name (str): llm-switchboard provider name
-                Examples: 'litellm.rits.output_val', 'openai.sync', 'litellm', 'litellm.ibm',
-                'litellm.ollama', 'watsonx'
             llm_model (str): LLM model name
             llm_temperature (float): LLM temperature
             llm_role (str): Role identifier for logging
             
-        Note: Provider-specific credentials and configuration should be set via
-        environment variables (e.g., OPENAI_API_KEY, WX_URL, WX_API_KEY, WX_PROJECT_ID, etc.)
         """
         self.llm_provider_name = llm_provider_name
         self.llm_temperature = llm_temperature
@@ -485,9 +480,9 @@ class LLMProvider:
             error_msg = (
                 f"Failed to initialize LLM provider '{self.llm_provider_name}'. "
                 f"Please check your configuration using the Configuration UI and verify:\n"
-                f"  - Provider name is correct (e.g., 'litellm.rits.output_val', 'openai.sync', 'litellm', 'watsonx')\n"
+                f"  - Provider name is correct\n"
                 f"  - Required environment variables are set for the provider\n"
-                f"  - Model name '{self.llm_model}' is valid for the provider (e.g., 'openai/gpt-oss-120b' for litellm.rits)\n"
+                f"  - Model name '{self.llm_model}' is valid for the provider\n"
                 f"\nOriginal error: {str(e)}"
             )
             raise LLMInitializationError(

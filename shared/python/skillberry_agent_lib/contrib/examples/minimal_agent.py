@@ -11,9 +11,6 @@ Prerequisites:
 2. A skill imported into the store (e.g., 'calculator')
 3. LLM provider credentials set in environment variables (via llm-switchboard)
    GitHub: https://github.com/skillberry-ai/llm-switchboard
-   - For OpenAI: export OPENAI_API_KEY=sk-...
-   - For Anthropic: export ANTHROPIC_API_KEY=sk-ant-...
-   - For Azure: export AZURE_OPENAI_API_KEY=... AZURE_OPENAI_ENDPOINT=...
 
 Usage:
     python minimal_agent.py

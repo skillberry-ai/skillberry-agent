@@ -54,7 +54,7 @@ The agent supports multiple LLM providers through environment variables.
    SPA_MODEL_NAME=gpt-4
    
    # Set provider credentials
-   OPENAI_API_KEY=sk-********************************
+   OPENAI_API_KEY=********************************
    ```
 
 3. The `.env` file is automatically loaded on startup
@@ -63,33 +63,9 @@ The agent supports multiple LLM providers through environment variables.
 
 #### OpenAI (Recommended for getting started)
 ```bash
-export OPENAI_API_KEY=sk-********************************
+export OPENAI_API_KEY=********************************
 export SPA_PROVIDER_NAME=openai.sync
 export SPA_MODEL_NAME=gpt-4
-```
-
-#### Anthropic Claude
-```bash
-export ANTHROPIC_API_KEY=sk-ant-********************************
-export SPA_PROVIDER_NAME=litellm
-export SPA_MODEL_NAME=anthropic/claude-3-sonnet
-```
-
-#### IBM RITS (Internal)
-```bash
-export RITS_API_KEY=********************************
-export RITS_API_URL=https://inference-3scale-apicast-production.apps.rits.fmaas.res.ibm.com
-export SPA_PROVIDER_NAME=litellm.rits.output_val
-export SPA_MODEL_NAME=openai/gpt-oss-120b
-```
-
-#### IBM WatsonX (Internal)
-```bash
-export WX_API_KEY=********************************
-export WX_PROJECT_ID=********************************
-export WX_URL=https://us-south.ml.cloud.ibm.com
-export SPA_PROVIDER_NAME=watsonx
-export SPA_MODEL_NAME=openai/gpt-oss-120b
 ```
 
 **Note:** You can also configure provider and model via the Configuration UI at `http://localhost:7001`
