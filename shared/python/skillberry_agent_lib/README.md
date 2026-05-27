@@ -7,8 +7,7 @@ A Python library for integrating AI agents with the Skillberry ecosystem, provid
 ### Installation
 
 ```bash
-# Using pip
-pip install skillberry-agent-lib
+pip install -e .
 ```
 
 ### Importing a Skill to the Store
