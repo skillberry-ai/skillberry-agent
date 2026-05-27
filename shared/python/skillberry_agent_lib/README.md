@@ -348,7 +348,7 @@ print("\n✨ Agent execution complete!")
 | **Trajectory Manager** | Track agent reasoning | `TrajectoryManager` |
 | **LangGraph Nodes** | Build React workflows | `create_react_tools_workflow()` |
 | **Message Models** | Structured messages | `SystemMessage`, `UserMessage`, etc. |
-| **Skillberry API** | Tools Store client | `SkillberryAPI` |
+| **Skillberry Store** | Tools Store client | `SkillberryStore` |
 
 ### 1. Skill Manager
 
@@ -484,21 +484,26 @@ manager.remove_trajectory(context)
 - Automatic trajectory creation
 - Copy-on-read to prevent external modification
 
-### 4. Skillberry API Client
+### 4. Skillberry Store Client
 
 Interface to the Skillberry Tools Store:
 
 ```python
-from skillberry_agent_lib import SkillberryAPI
-api = SkillberryAPI(base_url="http://localhost:8000")
+import os
+from skillberry_agent_lib import SkillberryStore
 
+# Configure via environment variable (recommended)
+os.environ['SKILLBERRY_STORE_URL'] = 'http://localhost:8000'
+
+# Or pass directly
+store = SkillberryStore(base_url=os.environ.get('SKILLBERRY_STORE_URL', 'http://localhost:8000'))
 
 # Check connectivity
-if api.check_communication():
+if store.check_communication():
     print("Connected to Skillberry Store")
 
 # Search for skills
-results = api.search_skills(
+results = store.search_skills(
     search_term="weather",
     max_number_of_results=10,
     similarity_threshold=0.8,
@@ -563,6 +568,7 @@ clear_vmcp_servers()
 Intercept and track MCP tool calls:
 
 ```python
+import os
 from skillberry_agent_lib import create_tool_interceptor, get_mcp_tools
 
 context = {"env_id": "agent-001"}
@@ -570,10 +576,15 @@ context = {"env_id": "agent-001"}
 # Create interceptor
 interceptor = create_tool_interceptor(context)
 
+# Configure skill via environment variable
+os.environ['SKILL_NAME'] = 'data-processor'
+
 # Get tools with automatic trajectory tracking
+# Assumes VMCP server is already created with the skill
 tools = get_mcp_tools(
+    port=port,
+    server_name=server.name,
     skillberry_context=context,
-    skill_name="data-processor",
 )
 
 # Tools now automatically log to trajectory when called
@@ -761,7 +772,7 @@ workflow = create_react_tools_workflow(
 
 ```bash
 # Clone the repository
-git clone <repository-url>
+git clone https://github.com/skillberry-ai/skillberry-agent.git
 cd skillberry-agent/shared/python/skillberry_agent_lib
 
 # Create and activate virtual environment
@@ -788,25 +799,4 @@ python -c "import skillberry_agent_lib; print('Import successful')"
 pytest
 ```
 
-### Type Checking
 
-```bash
-mypy skillberry_agent_lib
-```
-
-### Code Style
-
-```bash
-flake8 skillberry_agent_lib
-```
-
-## 📋 Requirements
-
-- Python >= 3.8
-- pydantic >= 2.11.3
-- requests >= 2.32.3
-- typing-extensions >= 4.13.2
-- langchain >= 0.3.25
-- langchain-core >= 0.3.59
-- langgraph >= 0.4.3
-- langchain-mcp-adapters >= 0.2.1
