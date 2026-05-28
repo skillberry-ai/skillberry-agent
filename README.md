@@ -22,18 +22,6 @@ A proxy-agent service that orchestrates intelligent interactions between custome
 
 ❗Ensure that the [skillberry-store](https://github.com/skillberry-ai/skillberry-store) is running.
 
-### Run the service with Docker or Podman 🐳
-
-```bash
-make docker_run
-```
-
->*Note:* Use `make help` to view a list of additional available operations.
-
-### Interact with the service API (via OpenAPI) 📜
-
-Open a browser against `http://127.0.0.1:7000/docs`.
-
 ## Prerequisites 🛠️
 
 ### LLM Provider Configuration
