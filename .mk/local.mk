@@ -6,8 +6,6 @@ ASSET_NAME := skillberry-agent
 ACRONYM := SBA
 DESC_NAME := Skillberry Agent service
 VERSION_LOCATION := fast_api/git_version.py
-# Set to 1 if this asset is using LLM services - watsonx or RITS
-USE_LLM_SVCS := 0
 # Set these two below even if your asset is not a service - it allows execution control
 SERVICE_ENTRY_MODULE := main
 SERVICE_NAME := $(ASSET_NAME)
