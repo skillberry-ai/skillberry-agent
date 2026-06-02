@@ -144,7 +144,12 @@ def tool_to_openai_json(tool: Any) -> Optional[Dict[str, Any]]:
     args_schema = getattr(tool, "args_schema", None)
 
     if args_schema:
-         json_schema = tool.args_schema
+        # Check if it's already a dict (JSON schema) or a Pydantic model class
+        if isinstance(args_schema, dict):
+            json_schema = args_schema
+        else:
+            # It's a Pydantic model class, extract the JSON schema
+            json_schema = args_schema.model_json_schema()
     else:
         json_schema = None
 
