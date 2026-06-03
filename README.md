@@ -8,7 +8,6 @@ A proxy-agent service that orchestrates intelligent interactions between custome
 
 - **Proxy-Agent Orchestration**: Central coordinator managing interactions between customer agents and Skillberry Store
 - **LLM Integration**: Seamless communication with language models via standardized API endpoints
-- **Intelligent Skill Resolution**: Three-tier strategy (UUID → Name → Chat History) for automatic tool discovery
 - **MCP Tools Management**: Access and orchestration of relevant skills through MCP API tools and prompts
 - **MCP Prompts/Snippets Support**: Skills can provide contextual instructions that are automatically injected into agent system prompts, enabling domain-specific guidance and behavior customization
 - **Response Optimization**: Enhanced and optimized responses before delivery to customer agents
@@ -86,9 +85,6 @@ export SKILL_UUID=abc-123-def-456
 
 # Option 2: Skill name (resolves to UUID automatically)
 export SKILL_NAME=weather-tool
-
-# Option 3: Automatic discovery from conversation (fallback)
-# No configuration needed - agent extracts from chat history
 ```
 
 **Optional Settings**:
