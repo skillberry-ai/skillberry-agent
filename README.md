@@ -2,6 +2,12 @@
 
 A proxy-agent service that orchestrates intelligent interactions between customer agents and the Skillberry ecosystem. The Skillberry Proxy-Agent acts as the central coordinator for LLM communication, skill resolution, and response optimization. Seamlessly integrates with Skillberry Store for dynamic tool discovery and execution through MCP protocols. Accessed via OpenAI-compatible endpoints (e.g., chat completions API) for seamless integration with existing AI applications.
 
+## Architecture 🏗️
+
+![Agentic Graph Architecture](images/agentic-graph-architecture.png)
+
+The diagram above illustrates the high-level architecture of the agentic workflow, showing how chat requests flow through skill resolution, tool binding, and the ReAct agent loop to produce intelligent responses.
+
 ## Features ✨
 
 - **Proxy-Agent Orchestration**: Central coordinator managing interactions between customer agents and Skillberry Store
