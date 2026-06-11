@@ -41,34 +41,36 @@ class TestGetOrCreateVmcpServerBasics(unittest.TestCase):
         mock_api.get_vmcp_server_details.side_effect = [
             Exception("Not found"),  # First call - server doesn't exist
             {  # Second call - after creation
+                "uuid": "a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d",
                 "name": "vmcp-server-test-env",
                 "description": "VMCP Server for env_id: test-env",
                 "port": 8001,
-                "skill_uuid": "test-uuid-123",
+                "skill_uuid": "550e8400-e29b-41d4-a716-446655440000",
                 "runtime": {"tools": ["tool1", "tool2"]}
             }
         ]
         mock_api.add_vmcp_server.return_value = {
             "name": "vmcp-server-test-env",
-            "uuid": "server-uuid-456",
+            "uuid": "a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d",
             "port": 8001
         }
         
         # Create server
         context = {"env_id": "test-env"}
-        result = get_or_create_vmcp_server(context, skill_uuid="test-uuid-123")
+        result = get_or_create_vmcp_server(context, skill_uuid="550e8400-e29b-41d4-a716-446655440000")
         
-        # Verify result
+        # Verify result includes UUID
+        self.assertEqual(result["uuid"], "a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d")
         self.assertEqual(result["name"], "vmcp-server-test-env")
         self.assertEqual(result["port"], 8001)
-        self.assertEqual(result["skill_uuid"], "test-uuid-123")
+        self.assertEqual(result["skill_uuid"], "550e8400-e29b-41d4-a716-446655440000")
         self.assertEqual(result["env_id"], "test-env")
         
         # Verify API calls
         mock_api.add_vmcp_server.assert_called_once_with(
             name="vmcp-server-test-env",
             description="VMCP Server for env_id: test-env",
-            skill_uuid="test-uuid-123",
+            skill_uuid="550e8400-e29b-41d4-a716-446655440000",
             skillberry_context=context
         )
     
@@ -79,18 +81,22 @@ class TestGetOrCreateVmcpServerBasics(unittest.TestCase):
         mock_api.get_vmcp_server_details.side_effect = [
             Exception("Not found"),
             {
+                "uuid": "b2c3d4e5-f6a7-4b8c-9d0e-1f2a3b4c5d6e",
                 "name": "vmcp-server-test-env",
                 "description": "VMCP Server for env_id: test-env",
                 "port": 8001,
-                "skill_uuid": "test-uuid-123",
+                "skill_uuid": "550e8400-e29b-41d4-a716-446655440000",
                 "runtime": {"tools": ["tool1"]}
             }
         ]
-        mock_api.add_vmcp_server.return_value = {"name": "vmcp-server-test-env"}
+        mock_api.add_vmcp_server.return_value = {
+            "name": "vmcp-server-test-env",
+            "uuid": "b2c3d4e5-f6a7-4b8c-9d0e-1f2a3b4c5d6e"
+        }
         
         # Create server first time
         context = {"env_id": "test-env"}
-        result1 = get_or_create_vmcp_server(context, skill_uuid="test-uuid-123")
+        result1 = get_or_create_vmcp_server(context, skill_uuid="550e8400-e29b-41d4-a716-446655440000")
         
         # Reset mock to verify no new calls
         mock_api.reset_mock()
@@ -110,16 +116,17 @@ class TestGetOrCreateVmcpServerBasics(unittest.TestCase):
         """Test when server already exists in Skillberry Tools Service."""
         # Setup mock - server exists on first check
         mock_api.get_vmcp_server_details.return_value = {
+            "uuid": "c3d4e5f6-a7b8-4c9d-0e1f-2a3b4c5d6e7f",
             "name": "vmcp-server-test-env",
             "description": "Existing server",
             "port": 8001,
-            "skill_uuid": "test-uuid-123",
+            "skill_uuid": "550e8400-e29b-41d4-a716-446655440000",
             "runtime": {"tools": ["tool1", "tool2"]}
         }
         
         # Create server
         context = {"env_id": "test-env"}
-        result = get_or_create_vmcp_server(context, skill_uuid="test-uuid-123")
+        result = get_or_create_vmcp_server(context, skill_uuid="550e8400-e29b-41d4-a716-446655440000")
         
         # Verify result
         self.assertEqual(result["name"], "vmcp-server-test-env")
@@ -149,7 +156,7 @@ class TestGetOrCreateVmcpServerBasics(unittest.TestCase):
         
         # Attempt to create server (should fail)
         with self.assertRaises(ValueError) as cm:
-            get_or_create_vmcp_server(context, skill_uuid="test-uuid")
+            get_or_create_vmcp_server(context, skill_uuid="550e8400-e29b-41d4-a716-446655440000")
         
         self.assertIn("VMCP server creation failed", str(cm.exception))
         
@@ -161,10 +168,11 @@ class TestGetOrCreateVmcpServerBasics(unittest.TestCase):
         """Test warning when existing server has different skill_uuid."""
         # Setup mock - server exists with different skill_uuid
         mock_api.get_vmcp_server_details.return_value = {
+            "uuid": "d4e5f6a7-b8c9-4d0e-1f2a-3b4c5d6e7f8a",
             "name": "vmcp-server-test-env",
             "description": "Existing server",
             "port": 8001,
-            "skill_uuid": "different-uuid",
+            "skill_uuid": "d4e5f6a7-b8c9-4d0e-1f2a-3b4c5d6e7f8a",
             "runtime": {"tools": []}
         }
         
@@ -172,13 +180,13 @@ class TestGetOrCreateVmcpServerBasics(unittest.TestCase):
         
         # Create server with different skill_uuid
         with self.assertLogs(level='WARNING') as log:
-            result = get_or_create_vmcp_server(context, skill_uuid="requested-uuid")
+            result = get_or_create_vmcp_server(context, skill_uuid="550e8400-e29b-41d4-a716-446655440000")
         
         # Verify warning was logged
         self.assertTrue(any("skill mismatch detected" in msg for msg in log.output))
         
         # Verify existing server was reused
-        self.assertEqual(result["skill_uuid"], "different-uuid")
+        self.assertEqual(result["skill_uuid"], "d4e5f6a7-b8c9-4d0e-1f2a-3b4c5d6e7f8a")
 
 
 class TestGetOrCreateVmcpServerThreadSafety(unittest.TestCase):
@@ -203,18 +211,22 @@ class TestGetOrCreateVmcpServerThreadSafety(unittest.TestCase):
         mock_api.get_vmcp_server_details.side_effect = [
             Exception("Not found"),  # First check
             {  # After creation
+                "uuid": "e5f6a7b8-c9d0-4e1f-2a3b-4c5d6e7f8a9b",
                 "name": "vmcp-server-test-env",
                 "port": 8001,
-                "skill_uuid": "test-uuid",
+                "skill_uuid": "550e8400-e29b-41d4-a716-446655440000",
                 "runtime": {"tools": []}
             }
         ]
-        mock_api.add_vmcp_server.return_value = {"name": "vmcp-server-test-env"}
+        mock_api.add_vmcp_server.return_value = {
+            "name": "vmcp-server-test-env",
+            "uuid": "e5f6a7b8-c9d0-4e1f-2a3b-4c5d6e7f8a9b"
+        }
         
         context = {"env_id": "test-env"}
         
         # First thread creates the server
-        result1 = get_or_create_vmcp_server(context, skill_uuid="test-uuid")
+        result1 = get_or_create_vmcp_server(context, skill_uuid="550e8400-e29b-41d4-a716-446655440000")
         self.assertIsNotNone(result1)
         self.assertEqual(result1["name"], "vmcp-server-test-env")
         

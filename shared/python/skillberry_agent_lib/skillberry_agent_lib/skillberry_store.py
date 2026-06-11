@@ -73,7 +73,8 @@ class SkillberryStore:
             similarity_threshold (float): Similarity threshold for the search
 
         Returns:
-            list: List of matching skills with name and similarity score
+            list: List of matching skills with filename, uuid, and similarity score
+                  Each result contains: {'filename': str, 'uuid': str, 'similarity_score': float}
 
         Raises:
             Exception: Any failure occurred during execution
@@ -110,12 +111,37 @@ class SkillberryStore:
         logger.info(f"get_skill called for skill: {skill_name}")
         
         try:
-            skill_data = self.skills_api.get_skill_skills_name_get(name=skill_name)
+            skill_data = self.skills_api.get_skill_skills_uuid_or_name_get(uuid_or_name=skill_name)
             logger.info(f"get_skill returned skill with UUID: {skill_data.get('uuid')}, name: {skill_data.get('name')}")
             logger.debug(f"Full skill data: {skill_data}")
             return skill_data
         except ApiException as e:
             logger.error(f"Error retrieving skill '{skill_name}': {e}")
+            raise Exception(f"Error retrieving skill: {str(e)}")
+
+    def get_skill_by_uuid(self, skill_uuid: str):
+        """
+        Retrieve the skill with the given UUID.
+
+        Parameters:
+            skill_uuid (str): The UUID of the skill
+
+        Returns:
+            dict: The skill object with full details
+
+        Raises:
+            Exception: Any failure occurred during execution
+
+        """
+        logger.info(f"get_skill_by_uuid called for UUID: {skill_uuid}")
+        
+        try:
+            skill_data = self.skills_api.get_skill_skills_uuid_or_name_get(uuid_or_name=skill_uuid)
+            logger.info(f"get_skill_by_uuid returned skill: {skill_data.get('name')}")
+            logger.debug(f"Full skill data: {skill_data}")
+            return skill_data
+        except ApiException as e:
+            logger.error(f"Error retrieving skill by UUID '{skill_uuid}': {e}")
             raise Exception(f"Error retrieving skill: {str(e)}")
 
     def find_skill_uuid_by_search(self, search_term: str):
@@ -139,18 +165,13 @@ class SkillberryStore:
                 logger.warning(f"No skills found matching search term: '{search_term}'")
                 return None
             
-            # Get the first matching skill name
+            # Extract UUID directly from search result
             first_match = search_results[0]
+            skill_uuid = first_match.get("uuid")
             skill_name = first_match.get("filename")
             similarity_score = first_match.get("similarity_score", 0.0)
             
-            logger.info(f"Found matching skill: '{skill_name}' with similarity score: {similarity_score}")
-            
-            # Get the full skill details to retrieve UUID
-            skill_data = self.get_skill(skill_name)
-            skill_uuid = skill_data.get("uuid")
-            
-            logger.info(f"Retrieved skill UUID: {skill_uuid} for skill: '{skill_name}'")
+            logger.info(f"Found skill '{skill_name}' (UUID: {skill_uuid}) with similarity: {similarity_score}")
             return skill_uuid
             
         except Exception as e:
@@ -214,7 +235,7 @@ class SkillberryStore:
                 raise Exception(f"Error creating vmcp server: {str(e)}")
 
     def get_vmcp_server_details(self, name: str):
-        """Get detailed information about a virtual MCP server.
+        """Get detailed information about a virtual MCP server by name.
 
         Retrieves comprehensive details about the specified virtual MCP server,
         including its configuration, port, and available tools.
@@ -231,14 +252,35 @@ class SkillberryStore:
         logger.info(f"get_vmcp_server_details called for: {name}")
         
         try:
-            result = self.vmcp_api.get_vmcp_server_vmcp_servers_name_get(name=name)
+            result = self.vmcp_api.get_vmcp_server_vmcp_servers_uuid_or_name_get(uuid_or_name=name)
             return result
         except ApiException as e:
             logger.error(f"Error retrieving vmcp server '{name}': {e}")
             raise Exception(f"Error retrieving vmcp server: {str(e)}")
 
+    def get_vmcp_server_by_uuid(self, vmcp_uuid: str):
+        """Get detailed information about a virtual MCP server by UUID.
+
+        Args:
+            vmcp_uuid: The UUID of the virtual MCP server.
+
+        Returns:
+            dict: Detailed information about the virtual MCP server.
+
+        Raises:
+            Exception: Any failure occurred during execution.
+        """
+        logger.info(f"get_vmcp_server_by_uuid called for UUID: {vmcp_uuid}")
+        
+        try:
+            result = self.vmcp_api.get_vmcp_server_vmcp_servers_uuid_or_name_get(uuid_or_name=vmcp_uuid)
+            return result
+        except ApiException as e:
+            logger.error(f"Error retrieving vmcp server by UUID '{vmcp_uuid}': {e}")
+            raise Exception(f"Error retrieving vmcp server: {str(e)}")
+
     def remove_vmcp_server(self, name: str):
-        """Remove a virtual MCP server
+        """Remove a virtual MCP server by name.
 
         Args:
             name: The name of the virtual MCP server to remove.
@@ -253,10 +295,31 @@ class SkillberryStore:
         logger.info(f"remove_vmcp_server called for: {name}")
         
         try:
-            result = self.vmcp_api.delete_vmcp_server_vmcp_servers_name_delete(name=name)
+            result = self.vmcp_api.delete_vmcp_server_vmcp_servers_uuid_or_name_delete(uuid_or_name=name)
             return result
         except ApiException as e:
             logger.error(f"Error removing vmcp server '{name}': {e}")
+            raise Exception(f"Error removing vmcp server: {str(e)}")
+
+    def remove_vmcp_server_by_uuid(self, vmcp_uuid: str):
+        """Remove a virtual MCP server by UUID.
+
+        Args:
+            vmcp_uuid: The UUID of the virtual MCP server to remove.
+
+        Returns:
+            dict: Success message
+
+        Raises:
+            Exception: Any failure occurred during execution.
+        """
+        logger.info(f"remove_vmcp_server_by_uuid called for UUID: {vmcp_uuid}")
+        
+        try:
+            result = self.vmcp_api.delete_vmcp_server_vmcp_servers_uuid_or_name_delete(uuid_or_name=vmcp_uuid)
+            return result
+        except ApiException as e:
+            logger.error(f"Error removing vmcp server by UUID '{vmcp_uuid}': {e}")
             raise Exception(f"Error removing vmcp server: {str(e)}")
 
     def get_mcp_tools(self, port: int, server_name: str = "skillberry-tools",

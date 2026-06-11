@@ -17,7 +17,7 @@ langchain = ">= 0.3.25"
 langchain-core = ">= 0.3.59"
 langgraph = ">= 0.4.3"
 langchain-mcp-adapters = ">= 0.2.1"
-skillberry-store-sdk = { git = "https://github.com/skillberry-ai/skillberry-store.git", tag = "0.1.0-alpha", subdirectory = "client/python/skillberry_store_sdk" }
+skillberry-store-sdk = { git = "https://github.com/skillberry-ai/skillberry-store.git", subdirectory = "client/python/skillberry_store_sdk" }
 
 [tool.poetry.dev-dependencies]
 pytest = ">= 7.2.1"

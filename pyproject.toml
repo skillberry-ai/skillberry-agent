@@ -20,7 +20,7 @@ dependencies = [
     "Flask>=3.1.0",
     "ipython>=8.12.3",
     "skillberry-agent-lib",
-    "skillberry-store-sdk @ git+https://github.com/skillberry-ai/skillberry-store.git@0.1.0-alpha#subdirectory=client/python/skillberry_store_sdk",
+    "skillberry-store-sdk @ git+https://github.com/skillberry-ai/skillberry-store.git#subdirectory=client/python/skillberry_store_sdk",
     "toml-cli",
     "llm-switchboard[litellm]>=0.1.0"
 ]
