@@ -139,6 +139,7 @@ def get_or_create_vmcp_server(
         
         # Step 4: Extract necessary fields for VirtualMcpServer
         vmcp_data = {
+            "uuid": vmcp_server_info.get("uuid"),  # Store UUID for future operations
             "name": vmcp_server_info.get("name") or server_name,
             "description": vmcp_server_info.get("description") or f"VMCP Server for {env_id}",
             "port": vmcp_server_info.get("port"),
@@ -201,22 +202,28 @@ def remove_vmcp_server(skillberry_context: Dict) -> bool:
     env_id = skillberry_context["env_id"]
     server_name = f"vmcp-server-{env_id}"
     registry_removed = False
+    vmcp_uuid = None
     
-    # Remove from local registry
+    # Remove from local registry and get UUID if available
     with _registry_lock:
         if env_id in _vmcp_server_registry:
+            vmcp_uuid = _vmcp_server_registry[env_id].get('uuid')
             del _vmcp_server_registry[env_id]
             logging.info(f"Removed VMCP server for env_id '{env_id}' from local registry")
             registry_removed = True
         else:
             logging.warning(f"No VMCP server found in local registry for env_id '{env_id}'")
     
-    # Remove from Skillberry Tools Service
+    # Remove from Skillberry Tools Service - prefer UUID-based removal
     try:
-        skillberry_store.remove_vmcp_server(name=server_name)
-        logging.info(f"Removed VMCP server '{server_name}' from Skillberry Tools Service")
+        if vmcp_uuid:
+            skillberry_store.remove_vmcp_server_by_uuid(vmcp_uuid)
+            logging.info(f"Removed VMCP server by UUID '{vmcp_uuid}' from Skillberry Tools Service")
+        else:
+            skillberry_store.remove_vmcp_server(name=server_name)
+            logging.info(f"Removed VMCP server by name '{server_name}' from Skillberry Tools Service")
     except Exception as e:
-        logging.warning(f"Failed to remove VMCP server '{server_name}' from Tools Service: {e}")
+        logging.warning(f"Failed to remove VMCP server from Tools Service: {e}")
     
     return registry_removed
 
