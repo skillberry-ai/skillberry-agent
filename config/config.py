@@ -26,11 +26,11 @@ class DynamicConfig:
         config_file="/tmp/tool-agent-config.json",
         enable_env_vars=True,
         env_prefix="SPA",
-        dotenv_path: Optional[str] = None
+        dotenv_path: Optional[str] = None,
     ):
         """
         Initialize DynamicConfig with environment variable support.
-        
+
         Args:
             structure: Configuration structure dictionary
             config_file: Path to JSON configuration file
@@ -43,21 +43,21 @@ class DynamicConfig:
         self.enable_env_vars = enable_env_vars
         self.env_prefix = env_prefix
         self.dotenv_path = dotenv_path
-        
+
         # Load .env file if enabled
         if self.enable_env_vars:
             self._load_dotenv()
-        
+
         self.config = self.load_config()
 
     def _load_dotenv(self):
         """
         Load environment variables from .env file using python-dotenv.
-        
+
         Priority:
         1. System environment variables (highest)
         2. .env file variables
-        
+
         The load_dotenv() function will NOT override existing environment variables.
         """
         if self.dotenv_path:
@@ -78,12 +78,12 @@ class DynamicConfig:
         2. Values from config file
         3. Values from .env file (loaded into environment)
         4. System environment variables (HIGHEST PRIORITY)
-        
+
         Environment variables (system + .env) ALWAYS override config file values when set.
         """
         # Step 1: Apply defaults
         config = self.apply_defaults(self.structure, {})
-        
+
         # Step 2: Load from file
         if os.path.exists(self.config_file):
             try:
@@ -94,35 +94,38 @@ class DynamicConfig:
             except (json.JSONDecodeError, IOError) as e:
                 logger.warning(f"Failed to load config file {self.config_file}: {e}")
                 # Continue with defaults
-        
+
         # Step 3: Override with env vars (includes .env file variables)
         # Note: .env file was already loaded in __init__ via _load_dotenv()
         if self.enable_env_vars:
-            env_config = load_env_vars_for_structure(
-                self.structure,
-                self.env_prefix
-            )
+            env_config = load_env_vars_for_structure(self.structure, self.env_prefix)
             if env_config:
                 config = self._merge_configs(config, env_config)
-                logger.info(f"Applied environment variable overrides with prefix {self.env_prefix}_")
-        
+                logger.info(
+                    f"Applied environment variable overrides with prefix {self.env_prefix}_"
+                )
+
         return config
 
     def _merge_configs(self, base: dict, override: dict) -> dict:
         """
         Recursively merge override into base.
         Values in override ALWAYS replace values in base.
-        
+
         Args:
             base: Base configuration dictionary
             override: Override configuration dictionary
-            
+
         Returns:
             Merged configuration dictionary
         """
         result = base.copy()
         for key, value in override.items():
-            if key in result and isinstance(result[key], dict) and isinstance(value, dict):
+            if (
+                key in result
+                and isinstance(result[key], dict)
+                and isinstance(value, dict)
+            ):
                 # Recursively merge nested dictionaries
                 result[key] = self._merge_configs(result[key], value)
             else:
