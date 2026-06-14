@@ -329,10 +329,11 @@ class TestLoadEnvVarsForStructure:
         """Test loading when no env vars are set."""
         # Clear all SPA_* environment variables to ensure clean state
         import os
+
         for key in list(os.environ.keys()):
             if key.startswith("SPA_"):
                 monkeypatch.delenv(key, raising=False)
-        
+
         structure = {"temperature": {"type": "float", "default": 0}}
 
         result = load_env_vars_for_structure(structure)
