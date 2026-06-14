@@ -24,4 +24,5 @@ jobs:
           pip install --upgrade pip
     - name: run_make
       run: |
+          source .venv/bin/activate
           make ci-pull-request
