@@ -160,7 +160,7 @@ def generate_ui(structure, _config, prefix=""):
 def serve_layout():
     # Reload config from file on each page load
     config.config = config.load_config()
-    
+
     return html.Div(
         [
             html.H1(
@@ -199,6 +199,7 @@ def serve_layout():
         ],
         style={"padding": "20px"},
     )
+
 
 config_ui_app.layout = serve_layout
 
