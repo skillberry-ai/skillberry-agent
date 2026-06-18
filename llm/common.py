@@ -17,43 +17,43 @@ logger = logging.getLogger(__name__)
 _OUTPUT_VAL_SUFFIX = ".output_val"
 
 
-def _langchain_message_to_openai_dict(m: Any, role_map: Dict[str, str]) -> Dict[str, Any]:
+def _langchain_message_to_openai_dict(
+    m: Any, role_map: Dict[str, str]
+) -> Dict[str, Any]:
     """Convert a LangChain message object to OpenAI dict format."""
-    
+
     def _convert_tool_call_to_openai(tc: Any, idx: int) -> Optional[Dict[str, Any]]:
         """Convert a single tool call to OpenAI format."""
         # Extract fields from either dict or object
         tc_id = tc.get("id", "") if isinstance(tc, dict) else getattr(tc, "id", "")
-        tc_name = tc.get("name", "") if isinstance(tc, dict) else getattr(tc, "name", "")
-        tc_args = tc.get("args", {}) if isinstance(tc, dict) else getattr(tc, "args", {})
-        
+        tc_name = (
+            tc.get("name", "") if isinstance(tc, dict) else getattr(tc, "name", "")
+        )
+        tc_args = (
+            tc.get("args", {}) if isinstance(tc, dict) else getattr(tc, "args", {})
+        )
+
         # Generate ID if missing (required by OpenAI)
         if not tc_id:
             tc_id = str(uuid.uuid4())
             logger.warning(f"Tool call {idx} missing id, generated: {tc_id}")
-        
+
         # Skip if name is missing
         if not tc_name:
             logger.error(f"Tool call {idx} missing name, skipping")
             return None
-        
+
         # Ensure arguments is a JSON string
         arguments_str = tc_args if isinstance(tc_args, str) else json.dumps(tc_args)
-        
+
         return {
             "id": tc_id,
             "type": "function",
-            "function": {
-                "name": tc_name,
-                "arguments": arguments_str
-            }
+            "function": {"name": tc_name, "arguments": arguments_str},
         }
-    
-    msg_dict = {
-        "role": role_map.get(m.type, m.type),
-        "content": m.content or ""
-    }
-    
+
+    msg_dict = {"role": role_map.get(m.type, m.type), "content": m.content or ""}
+
     # Handle tool_calls for AIMessage
     if hasattr(m, "tool_calls") and m.tool_calls:
         logger.debug(f"Processing {len(m.tool_calls)} tool calls")
@@ -64,50 +64,58 @@ def _langchain_message_to_openai_dict(m: Any, role_map: Dict[str, str]) -> Dict[
                 tool_calls.append(converted)
         if tool_calls:
             msg_dict["tool_calls"] = tool_calls
-    
+
     # Handle tool_call_id for ToolMessage
     if hasattr(m, "tool_call_id"):
         msg_dict["tool_call_id"] = m.tool_call_id
-    
+
     return msg_dict
 
 
 def _langchain_to_openai_messages(input_: Any) -> List[Dict[str, Any]]:
     """
     Convert LangChain message formats to OpenAI API message format.
-    
+
     Handles:
     - Plain strings -> user message
     - LangChain PromptValue -> list of OpenAI messages
     - List of LangChain messages -> list of OpenAI messages
     - List of dicts -> normalized OpenAI messages
-    
+
     Returns list of message dicts in OpenAI API format with roles: user, assistant, tool.
     """
-    logger.debug(f"_langchain_to_openai_messages called with input type: {type(input_)}")
-    
+    logger.debug(
+        f"_langchain_to_openai_messages called with input type: {type(input_)}"
+    )
+
     # Handle string input
     if isinstance(input_, str):
         return [{"role": "user", "content": input_}]
-    
+
     role_map = {"human": "user", "ai": "assistant", "tool": "tool"}
-    
+
     # Handle PromptValue with to_messages()
     if hasattr(input_, "to_messages"):
-        return [_langchain_message_to_openai_dict(m, role_map) for m in input_.to_messages()]
-    
+        return [
+            _langchain_message_to_openai_dict(m, role_map) for m in input_.to_messages()
+        ]
+
     # Handle list of messages
     if isinstance(input_, list):
         logger.debug(f"Processing list of {len(input_)} messages")
         result = []
-        
+
         for m in input_:
             if isinstance(m, dict):
                 # Dict message - fix tool_calls type if needed
                 msg_dict = m.copy()
                 if "tool_calls" in msg_dict and msg_dict["tool_calls"]:
                     msg_dict["tool_calls"] = [
-                        {**tc, "type": "function"} if tc.get("type") == "tool_call" else tc
+                        (
+                            {**tc, "type": "function"}
+                            if tc.get("type") == "tool_call"
+                            else tc
+                        )
                         for tc in msg_dict["tool_calls"]
                     ]
                 result.append(msg_dict)
@@ -117,9 +125,9 @@ def _langchain_to_openai_messages(input_: Any) -> List[Dict[str, Any]]:
             else:
                 # Unknown format
                 result.append({"role": "user", "content": str(m)})
-        
+
         return result
-    
+
     # Fallback
     return [{"role": "user", "content": str(input_)}]
 
@@ -127,7 +135,7 @@ def _langchain_to_openai_messages(input_: Any) -> List[Dict[str, Any]]:
 def tool_to_openai_json(tool: Any) -> Optional[Dict[str, Any]]:
     """
     Convert a LangChain tool to OpenAI 'function' tool JSON.
-    
+
     Expected fields on tool:
     - tool.name: str
     - tool.description: str (or None)
@@ -175,15 +183,15 @@ def tool_to_openai_json(tool: Any) -> Optional[Dict[str, Any]]:
 def _openai_response_to_langchain_message(response: Any) -> Any:
     """
     Convert llm-switchboard response to LangChain message format.
-    
+
     Handles:
     - LLMResponse objects -> AIMessage with tool calls
     - String responses -> AIMessage
     - Already converted messages -> pass through
-    
+
     Args:
         response: Response from llm-switchboard generate() call
-        
+
     Returns:
         LangChain AIMessage or the original response if already converted
     """
@@ -192,32 +200,34 @@ def _openai_response_to_langchain_message(response: Any) -> Any:
         # Extract content and tool_calls from LLMResponse
         content = response.content or ""
         tool_calls_data = response.tool_calls or []
-        
+
         # Convert tool_calls to LangChain ToolCall format
         langchain_tool_calls = []
         for tc in tool_calls_data:
             # Parse arguments from JSON string to dict
             args_str = tc.get("function", {}).get("arguments", "{}")
             try:
-                args_dict = json.loads(args_str) if isinstance(args_str, str) else args_str
+                args_dict = (
+                    json.loads(args_str) if isinstance(args_str, str) else args_str
+                )
             except json.JSONDecodeError:
                 logger.warning(f"Failed to parse tool call arguments: {args_str}")
                 args_dict = {}
-            
+
             tool_call = ToolCall(
                 name=tc.get("function", {}).get("name", ""),
                 args=args_dict,
                 id=tc.get("id", ""),
             )
             langchain_tool_calls.append(tool_call)
-        
+
         # Create AIMessage with content and tool_calls
         return AIMessage(content=content, tool_calls=langchain_tool_calls)
-    
+
     # If response is a string, wrap it in AIMessage
     if isinstance(response, str):
         return AIMessage(content=response)
-    
+
     # Otherwise return as-is (might already be an AIMessage)
     return response
 
@@ -247,57 +257,69 @@ class LLMClientLangChainAdapter:
         self._bound_tools = bound_tools or []
         self._tool_kwargs = tool_kwargs or {}
         self._temperature = temperature
-        
+
         # Convert tools to OpenAI schema once during initialization
         self._tools_openai_schema: Optional[List[Dict[str, Any]]] = None
         if self._bound_tools:
             self._tools_openai_schema = [
-                j for t in self._bound_tools if (j := tool_to_openai_json(t)) is not None
+                j
+                for t in self._bound_tools
+                if (j := tool_to_openai_json(t)) is not None
             ]
-            logger.info(f"Converted {len(self._tools_openai_schema)} tools to OpenAI schema during initialization")
+            logger.info(
+                f"Converted {len(self._tools_openai_schema)} tools to OpenAI schema during initialization"
+            )
             for idx, schema in enumerate(self._tools_openai_schema):
                 func_name = schema.get("function", {}).get("name", "unknown")
-                func_desc = schema.get("function", {}).get("description", "no description")
+                func_desc = schema.get("function", {}).get(
+                    "description", "no description"
+                )
                 func_params = schema.get("function", {}).get("parameters", {})
-                logger.info(f"OpenAI Schema {idx+1}: name='{func_name}', description='{func_desc}', params={func_params}")
+                logger.info(
+                    f"OpenAI Schema {idx+1}: name='{func_name}', description='{func_desc}', params={func_params}"
+                )
 
-    def invoke(self, input_: Union[str, Any], config: Optional[Any] = None, **kwargs: Any) -> Any:
+    def invoke(
+        self, input_: Union[str, Any], config: Optional[Any] = None, **kwargs: Any
+    ) -> Any:
         """Used by check_llm_communication() for a plain-text health check.
-        
+
         Args:
             input_: The input prompt (string or messages)
             config: Optional LangChain config (callbacks, tags, metadata, etc.)
             **kwargs: Additional keyword arguments
         """
         messages = _langchain_to_openai_messages(input_)
-        
+
         # Add pre-converted tools and tool kwargs if present
         if self._tools_openai_schema:
             kwargs["tools"] = self._tools_openai_schema
             # Merge tool-specific kwargs (e.g., tool_choice)
             kwargs.update(self._tool_kwargs)
-        
+
         if self._simple_model_in_generate and self._model_name:
             kwargs["model"] = self._model_name
-        
+
         # Pass temperature to llm-switchboard's generate() if configured
         if self._temperature is not None:
             kwargs["temperature"] = self._temperature
-        
+
         response = self._simple_client.generate(prompt=messages, **kwargs)
         return _openai_response_to_langchain_message(response)
 
-    def bind_tools(self, tools: List[Any], **kwargs: Any) -> "LLMClientLangChainAdapter":
+    def bind_tools(
+        self, tools: List[Any], **kwargs: Any
+    ) -> "LLMClientLangChainAdapter":
         """
         Bind MCP tools to the LLM adapter.
-        
+
         This method follows the LangChain pattern of returning a new adapter instance
         with tools bound, rather than modifying the existing instance (immutable pattern).
-        
+
         Args:
             tools: List of tools from get_mcp_tools() in LangChain format
             **kwargs: Additional tool binding options (e.g., tool_choice="auto")
-        
+
         Returns:
             New LLMClientLangChainAdapter instance with tools bound
         """
@@ -313,7 +335,9 @@ class LLMClientLangChainAdapter:
         )
 
 
-def _filter_supported_kwargs(provider_cls: Any, candidate_kwargs: Dict[str, Any]) -> Dict[str, Any]:
+def _filter_supported_kwargs(
+    provider_cls: Any, candidate_kwargs: Dict[str, Any]
+) -> Dict[str, Any]:
     """Return kwargs accepted by an llm-switchboard provider constructor."""
     signature = inspect.signature(provider_cls)
     parameters = signature.parameters
@@ -394,14 +418,16 @@ class LLMAdapterError:
     Error LLM adapter that always fails, used when provider validation fails.
     This ensures the health check will fail gracefully.
     """
-    
+
     def __init__(self, error_message: str):
         self.error_message = error_message
-    
-    def invoke(self, input_: Union[str, Any], config: Optional[Any] = None, **kwargs: Any) -> Any:
+
+    def invoke(
+        self, input_: Union[str, Any], config: Optional[Any] = None, **kwargs: Any
+    ) -> Any:
         """Always raises an exception with the validation error message."""
         raise ValueError(f"Invalid LLM provider configuration: {self.error_message}")
-    
+
     def bind_tools(self, tools: List[Any], **kwargs: Any) -> "LLMAdapterError":
         """Returns self to maintain interface compatibility."""
         return self
@@ -427,13 +453,28 @@ def _classify_llm_startup_error(error: Exception) -> str:
             "Please correct the model in the configuration UI and restart the agent."
         )
 
-    if "apikey" in lowered or "api key" in lowered or "token" in lowered or "unauthorized" in lowered:
+    if (
+        "apikey" in lowered
+        or "api key" in lowered
+        or "token" in lowered
+        or "unauthorized" in lowered
+    ):
         return (
             "The LLM credentials appear to be missing or invalid. "
             "Please correct the provider credentials/configuration and restart the agent."
         )
 
-    if any(term in lowered for term in ["connection", "timeout", "dns", "network", "vpn", "temporarily unavailable"]):
+    if any(
+        term in lowered
+        for term in [
+            "connection",
+            "timeout",
+            "dns",
+            "network",
+            "vpn",
+            "temporarily unavailable",
+        ]
+    ):
         return (
             "The agent could not reach the configured LLM service. "
             "Please check network/VPN/connectivity settings in the environment and restart the agent."
@@ -461,7 +502,7 @@ class LLMProvider:
             llm_model (str): LLM model name
             llm_temperature (float): LLM temperature
             llm_role (str): Role identifier for logging
-            
+
         """
         self.llm_provider_name = llm_provider_name
         self.llm_temperature = llm_temperature
@@ -530,7 +571,9 @@ def build_current_llm() -> LLMProvider:
     llm_model_value = config.get("model_name", "")
     llm_temperature_value = config.get("temperature", 0.0)
 
-    llm_provider_name = llm_provider_name_value if isinstance(llm_provider_name_value, str) else ""
+    llm_provider_name = (
+        llm_provider_name_value if isinstance(llm_provider_name_value, str) else ""
+    )
     llm_model = llm_model_value if isinstance(llm_model_value, str) else ""
     llm_temperature = (
         float(llm_temperature_value)
