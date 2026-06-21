@@ -356,7 +356,7 @@ def execute_agentic_graph(
         final_message = asyncio.run(process_stream())
     except Exception as e:
         logging.error(f"Error while streaming to the react agent: {e}")
-        return "Sorry, failed to answer using skillberry (invoke react agent)"
+        return "I apologize, but I'm experiencing a technical difficulty at the moment. Could you please repeat your request?"
 
     logger.info(
         f"=====> The agentic flow has finished executing the tools with parameters"
