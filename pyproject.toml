@@ -22,7 +22,7 @@ dependencies = [
     "skillberry-agent-lib",
     "skillberry-store-sdk @ git+https://github.com/skillberry-ai/skillberry-store.git#subdirectory=client/python/skillberry_store_sdk",
     "toml-cli",
-    "llm-switchboard[litellm]>=0.1.0"
+    "llm-switchboard>=0.1.0"
 ]
 
 [project.optional-dependencies]
