@@ -296,7 +296,7 @@ def execute_agentic_graph(
         else:
             thinking_log += "I will now use the tools and the LLM model to respond. "
             logging.debug(f"=====> Binding {len(all_tools)} tools to LLM")
-            log_tools_info(all_tools, prefix="=====>")
+            # log_tools_info(all_tools, prefix="=====>")  # Commented out - detailed tool info already logged in mcp_interceptor
             llm_with_tools = current_llm.llm.bind_tools(
                 tools=all_tools, tool_choice="auto"
             )

@@ -275,7 +275,7 @@ class LLMClientLangChainAdapter:
                     "description", "no description"
                 )
                 func_params = schema.get("function", {}).get("parameters", {})
-                logger.info(
+                logger.debug(
                     f"OpenAI Schema {idx+1}: name='{func_name}', description='{func_desc}', params={func_params}"
                 )
 

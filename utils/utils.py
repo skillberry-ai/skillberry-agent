@@ -113,7 +113,7 @@ def unflatten_keys(data: Dict[str, Any]) -> Dict[str, Any]:
                         current[part] = {}
                     current = current[part]
         except:
-            logger.info(f"unflatten_keys: Error handling key: {key}. Ignoring...")
+            logger.debug(f"unflatten_keys: Error handling key: {key}. Ignoring...")
             continue
     return result
 
