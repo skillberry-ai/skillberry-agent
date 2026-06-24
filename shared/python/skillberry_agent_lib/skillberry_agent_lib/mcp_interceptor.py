@@ -59,8 +59,8 @@ def _extract_mcp_result(result: Any, too_call_id: str = "") -> ToolMessage:
         error=is_error
     )
 
-    logging.info(f"Exit _extract_mcp_result (tool_message): {tool_message}")
-    return tool_message 
+    logging.debug(f"Exit _extract_mcp_result (tool_message): {tool_message}")
+    return tool_message
 
 
 async def pre_hook(skillberry_context: Dict, assistant_message: AssistantMessage) -> None:
