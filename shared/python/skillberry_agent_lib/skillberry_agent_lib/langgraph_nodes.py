@@ -164,18 +164,18 @@ def normalize_tool_node(state: ReactToolsCallingAgentState) -> Dict[str, Any]:
     tool_calls = getattr(last_message, "tool_calls", None)
     content = getattr(last_message, "content", "")
 
-    logger.info(f"ENTER normalize_tool_node with message type: {type(last_message)}")
-    logger.info(f"normalize_tool_node message content: {content[:200] if content else 'empty'}...")
-    logger.info(f"normalize_tool_node tool_calls value: {tool_calls}")
-    logger.info(f"normalize_tool_node tool_calls type: {type(tool_calls)}")
-    logger.info(f"normalize_tool_node tool_calls bool evaluation: {bool(tool_calls)}")
+    logger.debug(f"ENTER normalize_tool_node with message type: {type(last_message)}")
+    logger.debug(f"normalize_tool_node message content: {content[:200] if content else 'empty'}...")
+    logger.debug(f"normalize_tool_node tool_calls value: {tool_calls}")
+    logger.debug(f"normalize_tool_node tool_calls type: {type(tool_calls)}")
+    logger.debug(f"normalize_tool_node tool_calls bool evaluation: {bool(tool_calls)}")
     
     # Log the full message attributes for debugging
-    logger.info(f"normalize_tool_node last_message attributes: {dir(last_message)}")
+    logger.debug(f"normalize_tool_node last_message attributes: {dir(last_message)}")
     if hasattr(last_message, 'additional_kwargs'):
-        logger.info(f"normalize_tool_node additional_kwargs: {last_message.additional_kwargs}")
+        logger.debug(f"normalize_tool_node additional_kwargs: {last_message.additional_kwargs}")
     if hasattr(last_message, 'response_metadata'):
-        logger.info(f"normalize_tool_node response_metadata: {last_message.response_metadata}")
+        logger.debug(f"normalize_tool_node response_metadata: {last_message.response_metadata}")
 
     # Could either be None or []
     if not tool_calls:
@@ -188,23 +188,23 @@ def normalize_tool_node(state: ReactToolsCallingAgentState) -> Dict[str, Any]:
                 "tool_calls": parsed_tool_calls
             })
             messages[-1] = normalized
-            logger.info(f"normalize_tool_node: parsed tool calls from content: {parsed_tool_calls}")
-            logger.info(f"normalize_tool_node: replaced message with normalized version")
+            logger.debug(f"normalize_tool_node: parsed tool calls from content: {parsed_tool_calls}")
+            logger.debug(f"normalize_tool_node: replaced message with normalized version")
         else:
             thinking_log += "no tool calls found leaving message unchanged. "
-            logger.info("normalize_tool_node: no tool calls found in content, leaving message unchanged")
+            logger.debug("normalize_tool_node: no tool calls found in content, leaving message unchanged")
     else:
         thinking_log += "tool calls already present, clearing content. "
-        logger.info(f"normalize_tool_node: {len(tool_calls)} tool calls already present, clearing content")
+        logger.debug(f"normalize_tool_node: {len(tool_calls)} tool calls already present, clearing content")
         for idx, tc in enumerate(tool_calls):
-            logger.info(f"Existing tool call {idx+1}: {tc}")
+            logger.debug(f"Existing tool call {idx+1}: {tc}")
         
         # Clear content when tool calls are present to avoid redundant JSON
         if content:
             # Create new message with cleared content, preserving all other attributes using model_copy
             normalized = last_message.model_copy(update={"content": ""})
             messages[-1] = normalized
-            logger.info(f"normalize_tool_node: cleared content from tool-calling message")
+            logger.debug(f"normalize_tool_node: cleared content from tool-calling message")
 
     return {"messages": messages, "thinking_log": thinking_log}
 
@@ -240,13 +240,13 @@ def call_llm_model_node(
     
     # Normalize Anthropic content to OpenAI format if requested
     if normalize_anthropic_to_openai:
-        logger.info(f"Normalizing Anthropic content to OpenAI format before LLM invocation")
+        logger.debug(f"Normalizing Anthropic content to OpenAI format before LLM invocation")
         messages = normalize_anthropic_content_to_openai(messages)
 
     # Log all messages being passed to the LLM
-    logger.info(f"Number of messages being passed to LLM: {len(messages)}")
+    logger.debug(f"Number of messages being passed to LLM: {len(messages)}")
     for i, msg in enumerate(messages):
-        logger.info(f"Message {i+1}: type={type(msg).__name__}, role={getattr(msg, 'type', 'N/A')}, content_preview={str(msg.content)[:500]}...")
+        logger.debug(f"Message {i+1}: type={type(msg).__name__}, role={getattr(msg, 'type', 'N/A')}, content_preview={str(msg.content)[:500]}...")
 
 
     response = state["llm"].invoke(messages, config)
@@ -254,20 +254,20 @@ def call_llm_model_node(
     # Log the LLM response details
     logger.info(f"=====> LLM response received (call_llm_model_node)")
     logger.info(f"Response type: {type(response)}")
-    logger.info(f"Response content: {getattr(response, 'content', 'no content')[:500]}...")
-    logger.info(f"Response has tool_calls attribute: {hasattr(response, 'tool_calls')}")
+    logger.debug(f"Response content: {getattr(response, 'content', 'no content')[:500]}...")
+    logger.debug(f"Response has tool_calls attribute: {hasattr(response, 'tool_calls')}")
     if hasattr(response, 'tool_calls'):
         tool_calls = getattr(response, 'tool_calls', None)
-        logger.info(f"Response tool_calls value: {tool_calls}")
-        logger.info(f"Response tool_calls type: {type(tool_calls)}")
-        logger.info(f"Response tool_calls length: {len(tool_calls) if tool_calls else 0}")
+        logger.debug(f"Response tool_calls value: {tool_calls}")
+        logger.debug(f"Response tool_calls type: {type(tool_calls)}")
+        logger.debug(f"Response tool_calls length: {len(tool_calls) if tool_calls else 0}")
         if tool_calls:
             for idx, tc in enumerate(tool_calls):
-                logger.info(f"Tool call {idx+1}: {tc}")
+                logger.debug(f"Tool call {idx+1}: {tc}")
     if hasattr(response, 'additional_kwargs'):
-        logger.info(f"Response additional_kwargs: {response.additional_kwargs}")
+        logger.debug(f"Response additional_kwargs: {response.additional_kwargs}")
     if hasattr(response, 'response_metadata'):
-        logger.info(f"Response response_metadata: {response.response_metadata}")
+        logger.debug(f"Response response_metadata: {response.response_metadata}")
     
     return {"messages": [response]}
 
@@ -366,20 +366,20 @@ def create_react_tools_workflow(
         
         # All tools are executable - proceed with execution
         if enable_tool_logging and tool_logger:
-            tool_logger.info(f"[MCP DEBUG] ToolNode invoked with state: {state}")
-            tool_logger.info(f"[MCP DEBUG] Processing {len(tool_calls)} tool calls")
+            tool_logger.debug(f"[MCP DEBUG] ToolNode invoked with state: {state}")
+            tool_logger.debug(f"[MCP DEBUG] Processing {len(tool_calls)} tool calls")
             for idx, tc in enumerate(tool_calls):
-                tool_logger.info(f"[MCP DEBUG] Tool call {idx+1}: name='{tc.get('name')}', args={tc.get('args')}, id='{tc.get('id')}'")
+                tool_logger.debug(f"[MCP DEBUG] Tool call {idx+1}: name='{tc.get('name')}', args={tc.get('args')}, id='{tc.get('id')}'")
             
             result = await original_tool_node.ainvoke(state)
             
             # Log tool results
             result_messages = result.get("messages", [])
-            tool_logger.info(f"[MCP DEBUG] ToolNode returned {len(result_messages)} messages")
+            tool_logger.debug(f"[MCP DEBUG] ToolNode returned {len(result_messages)} messages")
             for idx, msg in enumerate(result_messages):
                 if hasattr(msg, "content"):
-                    tool_logger.info(f"[MCP DEBUG] Tool result {idx+1}: content='{msg.content[:200]}...' (truncated)")
-                    tool_logger.info(f"[MCP DEBUG] Tool result {idx+1} full content: {msg.content}")
+                    tool_logger.debug(f"[MCP DEBUG] Tool result {idx+1}: content='{msg.content[:200]}...' (truncated)")
+                    tool_logger.debug(f"[MCP DEBUG] Tool result {idx+1} full content: {msg.content}")
             
             return result
         else:
