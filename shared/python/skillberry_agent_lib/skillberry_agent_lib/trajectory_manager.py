@@ -1,3 +1,4 @@
+import copy
 import logging
 import threading
 from typing import Dict
@@ -6,6 +7,49 @@ from skillberry_agent_lib.data_model.messages import AssistantMessage, ToolMessa
 
 
 logger = logging.getLogger(__name__)
+
+
+def _truncate_message_for_logging(message: ToolMessage | AssistantMessage, max_length: int = 50) -> str:
+    """
+    Create a truncated string representation of a message for logging.
+    
+    This function is safe and does not modify the original message object.
+    
+    Args:
+        message: The message to truncate
+        max_length: Maximum length for content fields (default: 50)
+        
+    Returns:
+        Truncated string representation
+        
+    Edge cases handled:
+        - None/empty content: Returns as-is
+        - Missing model_dump: Falls back to __dict__
+        - Non-dict tool_calls: Safely skipped
+        - Empty trajectories: Returns empty string representation
+    """
+    try:
+        # Create a deep copy to avoid modifying the original message
+        msg_dict = copy.deepcopy(message.model_dump() if hasattr(message, 'model_dump') else message.__dict__)
+        
+        # Truncate content field if present and non-empty
+        if 'content' in msg_dict and msg_dict['content']:
+            content = str(msg_dict['content'])
+            if len(content) > max_length:
+                msg_dict['content'] = content[:max_length] + f"... ({len(content)} chars)"
+        
+        # Truncate tool_calls arguments if present
+        if 'tool_calls' in msg_dict and msg_dict['tool_calls']:
+            for tool_call in msg_dict['tool_calls']:
+                if isinstance(tool_call, dict) and 'arguments' in tool_call:
+                    args = str(tool_call['arguments'])
+                    if len(args) > max_length:
+                        tool_call['arguments'] = args[:max_length] + f"... ({len(args)} chars)"
+        
+        return str(msg_dict)
+    except Exception as e:
+        # Fallback: if truncation fails, return a safe string representation
+        return f"<Message truncation failed: {type(message).__name__}>"
 
 
 class TrajectoryManager:
@@ -46,7 +90,9 @@ class TrajectoryManager:
         env_id = skillberry_context["env_id"]
         with self._lock:
             self.trajectories.setdefault(env_id, []).append(message)
-            logger.info(f"add_message: After {env_id}: {self.trajectories[env_id]}")
+            # Log with truncated content to reduce log size
+            truncated_trajectory = [_truncate_message_for_logging(msg) for msg in self.trajectories[env_id]]
+            logger.info(f"add_message: After {env_id}: {truncated_trajectory}")
 
     def get_trajectory(self, skillberry_context: Dict) -> list[ToolMessage | AssistantMessage]:
         """
@@ -72,7 +118,9 @@ class TrajectoryManager:
         env_id = skillberry_context["env_id"]
         with self._lock:
             trajectory = self.trajectories.get(env_id, [])
-            logger.info(f"get_trajectory: {env_id}: {trajectory}")
+            # Log with truncated content to reduce log size
+            truncated_trajectory = [_truncate_message_for_logging(msg) for msg in trajectory]
+            logger.info(f"get_trajectory: {env_id}: {truncated_trajectory}")
             return trajectory.copy()  # Return a copy to prevent external modification
 
     def remove_trajectory(self, skillberry_context: Dict):
