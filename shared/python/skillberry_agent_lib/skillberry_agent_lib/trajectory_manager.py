@@ -46,7 +46,7 @@ class TrajectoryManager:
         env_id = skillberry_context["env_id"]
         with self._lock:
             self.trajectories.setdefault(env_id, []).append(message)
-            logger.info(f"add_message: After {env_id}: {self.trajectories[env_id]}")
+            logger.debug(f"add_message: After {env_id}: {self.trajectories[env_id]}")
 
     def get_trajectory(self, skillberry_context: Dict) -> list[ToolMessage | AssistantMessage]:
         """
@@ -72,7 +72,7 @@ class TrajectoryManager:
         env_id = skillberry_context["env_id"]
         with self._lock:
             trajectory = self.trajectories.get(env_id, [])
-            logger.info(f"get_trajectory: {env_id}: {trajectory}")
+            logger.debug(f"get_trajectory: {env_id}: {trajectory}")
             return trajectory.copy()  # Return a copy to prevent external modification
 
     def remove_trajectory(self, skillberry_context: Dict):
